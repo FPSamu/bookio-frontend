@@ -4,6 +4,8 @@ import SignupPage from '../pages/auth/SignupPage'
 import DashboardPage from '../pages/client/DashboardPage'
 import ReservationsPage from '../pages/client/ReservationsPage'
 import FavoritesPage from '../pages/client/FavoritesPage'
+import BusinessDashboardPage from '../pages/business/BusinessDashboardPage'
+import BusinessReservationsPage from '../pages/business/BusinessReservationsPage'
 
 const router = createBrowserRouter([
   // ── Auth ────────────────────────────────────────────────────────────────────
@@ -16,8 +18,12 @@ const router = createBrowserRouter([
   { path: '/reservations', element: <ReservationsPage /> },
   { path: '/favorites',    element: <FavoritesPage /> },
 
+  // ── Negocio ─────────────────────────────────────────────────────────────────
+  { path: '/business/dashboard',    element: <BusinessDashboardPage /> },
+  { path: '/business/reservations', element: <BusinessReservationsPage /> },
+
   // ── Fallback ────────────────────────────────────────────────────────────────
-  { path: '*',             element: <Navigate to="/dashboard" replace /> },
+  { path: '*', element: <Navigate to="/dashboard" replace /> },
 ])
 
 export default router
