@@ -2,17 +2,17 @@ import { useParams, useNavigate, Link, Navigate } from 'react-router-dom'
 import AuthLayout from '../../layouts/AuthLayout'
 import AccountTypeSelector from '../../components/auth/AccountTypeSelector'
 import ClientSignupForm from '../../components/auth/ClientSignupForm'
-import RestaurantSignupForm from '../../components/auth/RestaurantSignupForm'
+import BusinessSignupForm from '../../components/auth/BusinessSignupForm'
 import Divider from '../../components/ui/Divider'
 
-const VALID_TYPES = ['client', 'restaurant']
+const VALID_TYPES = ['client', 'business']
 
 // ── Página ────────────────────────────────────────────────────────────────────
+
 export default function SignupPage() {
   const { type } = useParams()
   const navigate = useNavigate()
 
-  // Redirige a /signup/client si el tipo no es válido
   if (!VALID_TYPES.includes(type)) {
     return <Navigate to="/signup/client" replace />
   }
@@ -23,6 +23,7 @@ export default function SignupPage() {
 
   return (
     <AuthLayout>
+
       {/* Encabezado */}
       <div className="mb-6 flex flex-col gap-1">
         <h1 className="text-2xl font-semibold leading-tight text-neutral-900">
@@ -38,12 +39,12 @@ export default function SignupPage() {
 
       <Divider className="my-6" />
 
-      {/* Formularios: ambos en el DOM, solo el activo visible */}
+      {/* Formularios */}
       <div className={type === 'client' ? 'block' : 'hidden'}>
         <ClientSignupForm />
       </div>
-      <div className={type === 'restaurant' ? 'block' : 'hidden'}>
-        <RestaurantSignupForm />
+      <div className={type === 'business' ? 'block' : 'hidden'}>
+        <BusinessSignupForm />
       </div>
 
       {/* Footer: ir a login */}

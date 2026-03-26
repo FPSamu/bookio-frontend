@@ -1,19 +1,51 @@
-export const DEFAULT_CATEGORIES = [
-  { id: 'all', label: 'Todos' },
-  { id: 'mexican', label: 'Mexicana' },
-  { id: 'italian', label: 'Italiana' },
-  { id: 'japanese', label: 'Japonesa' },
-  { id: 'american', label: 'Americana' },
-  { id: 'seafood', label: 'Mariscos' },
-  { id: 'mediterranean', label: 'Mediterránea' },
-  { id: 'chinese', label: 'China' },
-  { id: 'vegan', label: 'Vegana' },
-  { id: 'brunch', label: 'Brunch' },
-  { id: 'fusion', label: 'Fusión' },
-]
+export const CATEGORIES_BY_TYPE = {
+  all: [
+    { id: 'all', label: 'Todos' },
+  ],
+  restaurant: [
+    { id: 'all',           label: 'Todos' },
+    { id: 'mexican',       label: 'Mexicana' },
+    { id: 'italian',       label: 'Italiana' },
+    { id: 'japanese',      label: 'Japonesa' },
+    { id: 'american',      label: 'Americana' },
+    { id: 'seafood',       label: 'Mariscos' },
+    { id: 'mediterranean', label: 'Mediterránea' },
+    { id: 'chinese',       label: 'China' },
+    { id: 'vegan',         label: 'Vegana' },
+    { id: 'brunch',        label: 'Brunch' },
+    { id: 'fusion',        label: 'Fusión' },
+  ],
+  spa: [
+    { id: 'all',          label: 'Todos' },
+    { id: 'massage',      label: 'Masajes' },
+    { id: 'facial',       label: 'Faciales' },
+    { id: 'body',         label: 'Tratamientos corporales' },
+    { id: 'aromatherapy', label: 'Aromaterapia' },
+    { id: 'hydrotherapy', label: 'Hidroterapia' },
+    { id: 'meditation',   label: 'Meditación' },
+  ],
+  medical: [
+    { id: 'all',             label: 'Todos' },
+    { id: 'general',         label: 'Medicina general' },
+    { id: 'dermatology',     label: 'Dermatología' },
+    { id: 'dentistry',       label: 'Odontología' },
+    { id: 'nutrition',       label: 'Nutrición' },
+    { id: 'psychology',      label: 'Psicología' },
+    { id: 'physiotherapy',   label: 'Fisioterapia' },
+  ],
+  salon: [
+    { id: 'all',      label: 'Todos' },
+    { id: 'haircut',  label: 'Corte' },
+    { id: 'color',    label: 'Color' },
+    { id: 'nails',    label: 'Uñas' },
+    { id: 'beard',    label: 'Barba' },
+    { id: 'makeup',   label: 'Maquillaje' },
+    { id: 'keratin',  label: 'Keratina' },
+  ],
+}
 
 export default function CategoryFilter({
-  categories = DEFAULT_CATEGORIES,
+  categories = CATEGORIES_BY_TYPE.restaurant,
   selected = 'all',
   onChange,
 }) {

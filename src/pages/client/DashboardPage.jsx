@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
 import ClientLayout from '../../layouts/ClientLayout'
 import SearchBar from '../../components/search/SearchBar'
-import CategoryFilter from '../../components/search/CategoryFilter'
+import BusinessTypeFilter from '../../components/search/BusinessTypeFilter'
+import CategoryFilter, { CATEGORIES_BY_TYPE } from '../../components/search/CategoryFilter'
 import RatingFilter from '../../components/search/RatingFilter'
 import BusinessGrid from '../../components/business/BusinessGrid'
 import SectionTitle from '../../components/ui/SectionTitle'
@@ -10,80 +11,142 @@ import SectionTitle from '../../components/ui/SectionTitle'
 // TODO: reemplazar con llamadas a la API (GET /businesses, GET /businesses/recommended)
 
 const MOCK_BUSINESSES = [
+  // ── Restaurantes ────────────────────────────────────────────────────────────
   {
-    id: '1', name: 'El Origen', category: 'mexican', rating: 4.8,
+    id: '1', type: 'restaurant', name: 'El Origen', category: 'mexican', rating: 4.8,
     reviewCount: 312, imageUrl: null, location: 'Col. Roma Norte, CDMX',
     tags: ['Mexicana', 'Contemporánea'], isOpen: true,
   },
   {
-    id: '2', name: 'Brunch & Co.', category: 'brunch', rating: 4.5,
+    id: '2', type: 'restaurant', name: 'Brunch & Co.', category: 'brunch', rating: 4.5,
     reviewCount: 187, imageUrl: null, location: 'Col. Condesa, CDMX',
     tags: ['Brunch', 'Desayunos'], isOpen: true,
   },
   {
-    id: '3', name: 'Sushi Nami', category: 'japanese', rating: 4.6,
+    id: '3', type: 'restaurant', name: 'Sushi Nami', category: 'japanese', rating: 4.6,
     reviewCount: 240, imageUrl: null, location: 'Polanco, CDMX',
     tags: ['Japonesa', 'Sushi', 'Omakase'], isOpen: true,
   },
   {
-    id: '4', name: 'La Mar', category: 'seafood', rating: 4.9,
+    id: '4', type: 'restaurant', name: 'La Mar', category: 'seafood', rating: 4.9,
     reviewCount: 198, imageUrl: null, location: 'Col. Anzures, CDMX',
     tags: ['Mariscos', 'Ceviche', 'Pescados'], isOpen: true,
   },
   {
-    id: '5', name: 'Oliva Mediterráneo', category: 'mediterranean', rating: 4.7,
+    id: '5', type: 'restaurant', name: 'Oliva Mediterráneo', category: 'mediterranean', rating: 4.7,
     reviewCount: 156, imageUrl: null, location: 'Santa Fe, CDMX',
     tags: ['Mediterránea', 'Griega', 'Tapas'], isOpen: true,
   },
   {
-    id: '6', name: 'La Trattoria', category: 'italian', rating: 4.3,
+    id: '6', type: 'restaurant', name: 'La Trattoria', category: 'italian', rating: 4.3,
     reviewCount: 201, imageUrl: null, location: 'Col. Nápoles, CDMX',
     tags: ['Italiana', 'Pasta', 'Pizza'], isOpen: true,
   },
   {
-    id: '7', name: 'Green Bowl', category: 'vegan', rating: 4.4,
+    id: '7', type: 'restaurant', name: 'Green Bowl', category: 'vegan', rating: 4.4,
     reviewCount: 134, imageUrl: null, location: 'Col. Juárez, CDMX',
     tags: ['Vegana', 'Orgánica', 'Saludable'], isOpen: true,
   },
   {
-    id: '8', name: 'Pekin Garden', category: 'chinese', rating: 4.2,
+    id: '8', type: 'restaurant', name: 'Pekin Garden', category: 'chinese', rating: 4.2,
     reviewCount: 89, imageUrl: null, location: 'Col. del Valle, CDMX',
     tags: ['China', 'Dim Sum', 'Wok'], isOpen: true,
   },
   {
-    id: '9', name: 'Taquería Los Compadres', category: 'mexican', rating: 4.2,
+    id: '9', type: 'restaurant', name: 'Taquería Los Compadres', category: 'mexican', rating: 4.2,
     reviewCount: 420, imageUrl: null, location: 'Iztapalapa, CDMX',
     tags: ['Mexicana', 'Tacos', 'Antojitos'], isOpen: true,
   },
   {
-    id: '10', name: 'Smash House', category: 'american', rating: 4.5,
+    id: '10', type: 'restaurant', name: 'Smash House', category: 'american', rating: 4.5,
     reviewCount: 310, imageUrl: null, location: 'Col. Roma Sur, CDMX',
     tags: ['Americana', 'Burgers', 'Brunch'], isOpen: false,
   },
   {
-    id: '11', name: 'Umami Fusion', category: 'fusion', rating: 4.6,
+    id: '11', type: 'restaurant', name: 'Umami Fusion', category: 'fusion', rating: 4.6,
     reviewCount: 172, imageUrl: null, location: 'Polanco, CDMX',
     tags: ['Fusión', 'Nikkei', 'Contemporánea'], isOpen: true,
   },
+
+  // ── Spas ────────────────────────────────────────────────────────────────────
+  {
+    id: '12', type: 'spa', name: 'Zen Garden Spa', category: 'massage', rating: 4.9,
+    reviewCount: 214, imageUrl: null, location: 'Polanco, CDMX',
+    tags: ['Masajes', 'Relajación', 'Piedras calientes'], isOpen: true,
+  },
+  {
+    id: '13', type: 'spa', name: 'Lumière Beauty Spa', category: 'facial', rating: 4.7,
+    reviewCount: 98, imageUrl: null, location: 'Col. Condesa, CDMX',
+    tags: ['Faciales', 'Limpieza profunda', 'Hidratación'], isOpen: true,
+  },
+  {
+    id: '14', type: 'spa', name: 'Aqua Vitae', category: 'hydrotherapy', rating: 4.5,
+    reviewCount: 67, imageUrl: null, location: 'Santa Fe, CDMX',
+    tags: ['Hidroterapia', 'Jacuzzi', 'Flotación'], isOpen: true,
+  },
+
+  // ── Médicos ─────────────────────────────────────────────────────────────────
+  {
+    id: '15', type: 'medical', name: 'Clínica Salud Integral', category: 'general', rating: 4.6,
+    reviewCount: 342, imageUrl: null, location: 'Col. Doctores, CDMX',
+    tags: ['Medicina general', 'Urgencias', 'Laboratorio'], isOpen: true,
+  },
+  {
+    id: '16', type: 'medical', name: 'DermaVida', category: 'dermatology', rating: 4.8,
+    reviewCount: 189, imageUrl: null, location: 'Polanco, CDMX',
+    tags: ['Dermatología', 'Estética', 'Acné'], isOpen: true,
+  },
+  {
+    id: '17', type: 'medical', name: 'Sonrisa Perfecta', category: 'dentistry', rating: 4.7,
+    reviewCount: 256, imageUrl: null, location: 'Col. Narvarte, CDMX',
+    tags: ['Odontología', 'Ortodoncia', 'Blanqueamiento'], isOpen: false,
+  },
+
+  // ── Salón ────────────────────────────────────────────────────────────────────
+  {
+    id: '18', type: 'salon', name: 'Studio 54 Hair', category: 'color', rating: 4.8,
+    reviewCount: 301, imageUrl: null, location: 'Col. Roma Norte, CDMX',
+    tags: ['Color', 'Balayage', 'Highlights'], isOpen: true,
+  },
+  {
+    id: '19', type: 'salon', name: 'The Barber Society', category: 'beard', rating: 4.9,
+    reviewCount: 415, imageUrl: null, location: 'Col. Juárez, CDMX',
+    tags: ['Barba', 'Corte clásico', 'Afeitado'], isOpen: true,
+  },
+  {
+    id: '20', type: 'salon', name: 'Nails & Co.', category: 'nails', rating: 4.6,
+    reviewCount: 178, imageUrl: null, location: 'Col. Del Valle, CDMX',
+    tags: ['Uñas', 'Gel', 'Nail art'], isOpen: true,
+  },
 ]
 
-// Índices de los negocios que el backend marcaría como "recomendados"
-const RECOMMENDED_IDS = ['1', '3', '5', '2']
-
-// Los ids de categoría coinciden directamente con el campo category del negocio,
-// excepto 'all' que no filtra.
-const ALL_CATEGORY = 'all'
+const RECOMMENDED_IDS = ['1', '3', '12', '19', '16', '18']
+const ALL = 'all'
 
 // ── Página ────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [activeSearch, setActiveSearch] = useState('') // se aplica al hacer submit
-  const [selectedCategory, setSelectedCategory] = useState('all')
-  const [minRating, setMinRating] = useState(null)
+  const [searchQuery,     setSearchQuery]     = useState('')
+  const [activeSearch,    setActiveSearch]    = useState('')
+  const [selectedType,    setSelectedType]    = useState(ALL)
+  const [selectedCategory, setSelectedCategory] = useState(ALL)
+  const [minRating,       setMinRating]       = useState(null)
   const [loading] = useState(false) // TODO: true mientras carga la API
 
-  // Negocios recomendados — no se filtran por búsqueda ni categoría
+  const handleTypeChange = (type) => {
+    setSelectedType(type)
+    setSelectedCategory(ALL) // reset subcategoría al cambiar tipo
+  }
+
+  const handleClearFilters = () => {
+    setActiveSearch('')
+    setSearchQuery('')
+    setSelectedType(ALL)
+    setSelectedCategory(ALL)
+    setMinRating(null)
+  }
+
+  // Recomendaciones — no se filtran, siempre las mismas
   const recommendations = useMemo(
     () => MOCK_BUSINESSES.filter((b) => RECOMMENDED_IDS.includes(b.id)),
     []
@@ -96,19 +159,18 @@ export default function DashboardPage() {
         !activeSearch ||
         b.name.toLowerCase().includes(activeSearch.toLowerCase()) ||
         b.tags.some((t) => t.toLowerCase().includes(activeSearch.toLowerCase()))
-      const matchesCategory =
-        selectedCategory === ALL_CATEGORY || b.category === selectedCategory
-      const matchesRating = minRating === null || b.rating >= minRating
-      return matchesSearch && matchesCategory && matchesRating
+      const matchesType     = selectedType === ALL     || b.type === selectedType
+      const matchesCategory = selectedCategory === ALL || b.category === selectedCategory
+      const matchesRating   = minRating === null       || b.rating >= minRating
+      return matchesSearch && matchesType && matchesCategory && matchesRating
     })
-  }, [activeSearch, selectedCategory, minRating])
+  }, [activeSearch, selectedType, selectedCategory, minRating])
 
-  const isFiltering = activeSearch || selectedCategory !== ALL_CATEGORY || minRating !== null
-
-  const handleReserve = (business) => {
-    // TODO: navegar a página de detalle / modal de reserva
-    console.log('Reservar:', business.name)
-  }
+  const isFiltering =
+    activeSearch ||
+    selectedType !== ALL ||
+    selectedCategory !== ALL ||
+    minRating !== null
 
   return (
     <ClientLayout>
@@ -117,7 +179,7 @@ export default function DashboardPage() {
       <section className="mb-6">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-neutral-900">
-            ¿A dónde quieres ir hoy?
+            ¿Qué quieres reservar hoy?
           </h1>
           <p className="mt-1 text-sm text-neutral-400">
             Descubre y reserva los mejores lugares cerca de ti.
@@ -132,14 +194,18 @@ export default function DashboardPage() {
 
       {/* ── Filtros ───────────────────────────────────────────────────── */}
       <section className="mb-8 flex flex-col gap-3">
-        <CategoryFilter
-          selected={selectedCategory}
-          onChange={setSelectedCategory}
-        />
+        <BusinessTypeFilter selected={selectedType} onChange={handleTypeChange} />
+        {selectedType !== ALL && (
+          <CategoryFilter
+            categories={CATEGORIES_BY_TYPE[selectedType]}
+            selected={selectedCategory}
+            onChange={setSelectedCategory}
+          />
+        )}
         <RatingFilter value={minRating} onChange={setMinRating} />
       </section>
 
-      {/* ── Recomendaciones — solo si no hay búsqueda activa ──────────── */}
+      {/* ── Recomendaciones — solo si no hay filtros activos ──────────── */}
       {!isFiltering && (
         <section className="mb-10">
           <SectionTitle
@@ -152,7 +218,7 @@ export default function DashboardPage() {
             businesses={recommendations}
             loading={loading}
             skeletonCount={4}
-            onReserve={handleReserve}
+            onReserve={() => {}}
           />
         </section>
       )}
@@ -164,20 +230,12 @@ export default function DashboardPage() {
           subtitle={
             isFiltering
               ? `${filteredBusinesses.length} resultado${filteredBusinesses.length !== 1 ? 's' : ''} encontrado${filteredBusinesses.length !== 1 ? 's' : ''}`
-              : 'Explora todos los negocios disponibles'
+              : 'Explora restaurantes, spas, clínicas y salones'
           }
           className="mb-4"
           action={
             isFiltering
-              ? {
-                  label: 'Limpiar filtros',
-                  onClick: () => {
-                    setActiveSearch('')
-                    setSearchQuery('')
-                    setSelectedCategory(ALL_CATEGORY)
-                    setMinRating(null)
-                  },
-                }
+              ? { label: 'Limpiar filtros', onClick: handleClearFilters }
               : undefined
           }
         />
@@ -185,7 +243,7 @@ export default function DashboardPage() {
           businesses={filteredBusinesses}
           loading={loading}
           skeletonCount={6}
-          onReserve={handleReserve}
+          onReserve={() => {}}
           emptyMessage="No encontramos negocios con esos filtros. Intenta ajustar tu búsqueda."
         />
       </section>
