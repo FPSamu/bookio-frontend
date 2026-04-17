@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import InputField from '../ui/InputField'
 import PasswordInput from '../ui/PasswordInput'
 import Button from '../ui/Button'
+import { useAuth } from '../../context/AuthContext'
 
 function validate(form) {
   const errors = {}
@@ -32,14 +34,13 @@ function validate(form) {
 }
 
 export default function ClientSignupForm() {
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  })
+  const { registerWithEmail } = useAuth()
+  const navigate = useNavigate()
+
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
+  const [apiError, setApiError] = useState('')
 
   const set = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
@@ -52,13 +53,24 @@ export default function ClientSignupForm() {
       return
     }
     setErrors({})
+    setApiError('')
     setLoading(true)
-    // TODO: llamada a la API — registro de cliente
-    setLoading(false)
+    try {
+      await registerWithEmail({ ...form, role: 'CLIENT' })
+      navigate('/dashboard')
+    } catch (err) {
+      setApiError(resolveFirebaseError(err))
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+      {apiError && (
+        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{apiError}</p>
+      )}
+
       <InputField
         id="client-name"
         label="Nombre completo"
@@ -110,4 +122,13 @@ export default function ClientSignupForm() {
       </Button>
     </form>
   )
+}
+
+function resolveFirebaseError(err) {
+  const map = {
+    'auth/email-already-in-use': 'Este correo ya está registrado.',
+    'auth/invalid-email':        'El correo no es válido.',
+    'auth/weak-password':        'La contraseña es muy débil.',
+  }
+  return map[err?.code] ?? 'Ocurrió un error. Intenta de nuevo.'
 }

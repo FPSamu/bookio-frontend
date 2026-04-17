@@ -1,4 +1,6 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import UserMenu from '../components/ui/UserMenu'
 
 // ── Íconos ────────────────────────────────────────────────────────────────────
 
@@ -56,26 +58,23 @@ function Logo() {
   )
 }
 
-function UserAvatar({ name = 'U' }) {
-  const initial = name.charAt(0).toUpperCase()
-  return (
-    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-200 text-sm font-semibold text-neutral-700 cursor-pointer hover:bg-neutral-300 transition-colors select-none">
-      {initial}
-    </div>
-  )
-}
-
 // ── Navbar desktop ────────────────────────────────────────────────────────────
 
 function Navbar() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
+  }
+
   return (
     <header className="fixed inset-x-0 top-0 z-30 h-16 border-b border-neutral-100 bg-white/90 backdrop-blur-md">
       <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-5 sm:px-8">
 
-        {/* Logo */}
         <Logo />
 
-        {/* Nav links — solo desktop */}
         <nav className="hidden items-center gap-1 md:flex">
           {NAV_LINKS.map(({ to, label }) => (
             <NavLink
@@ -95,10 +94,7 @@ function Navbar() {
           ))}
         </nav>
 
-        {/* Acciones derecha */}
-        <div className="flex items-center gap-3">
-          <UserAvatar name="Samuel" />
-        </div>
+        <UserMenu name={user?.name} email={user?.email} onLogout={handleLogout} />
       </div>
     </header>
   )

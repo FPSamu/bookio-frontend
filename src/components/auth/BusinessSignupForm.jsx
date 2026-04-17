@@ -1,9 +1,9 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import InputField from '../ui/InputField'
 import PasswordInput from '../ui/PasswordInput'
 import Button from '../ui/Button'
-
-// ── Tipos de negocio ──────────────────────────────────────────────────────────
+import { useAuth } from '../../context/AuthContext'
 
 const BUSINESS_TYPES = [
   { value: 'restaurant', label: 'Restaurante' },
@@ -19,18 +19,11 @@ const BUSINESS_NAME_PLACEHOLDER = {
   salon:      'Studio 54 Hair',
 }
 
-// ── Validación ────────────────────────────────────────────────────────────────
-
 function validate(form) {
   const errors = {}
 
-  if (!form.businessName.trim()) {
-    errors.businessName = 'El nombre del negocio es requerido.'
-  }
-
-  if (!form.contactName.trim()) {
-    errors.contactName = 'El nombre de contacto es requerido.'
-  }
+  if (!form.businessName.trim()) errors.businessName = 'El nombre del negocio es requerido.'
+  if (!form.contactName.trim())  errors.contactName  = 'El nombre de contacto es requerido.'
 
   if (!form.email) {
     errors.email = 'El correo es requerido.'
@@ -59,20 +52,22 @@ function validate(form) {
   return errors
 }
 
-// ── Componente ────────────────────────────────────────────────────────────────
-
 export default function BusinessSignupForm() {
+  const { registerWithEmail } = useAuth()
+  const navigate = useNavigate()
+
   const [form, setForm] = useState({
-    businessType:    'restaurant',
-    businessName:    '',
-    contactName:     '',
-    email:           '',
-    phone:           '',
-    password:        '',
+    businessType: 'restaurant',
+    businessName: '',
+    contactName:  '',
+    email:        '',
+    phone:        '',
+    password:     '',
     confirmPassword: '',
   })
-  const [errors,  setErrors]  = useState({})
-  const [loading, setLoading] = useState(false)
+  const [errors,   setErrors]   = useState({})
+  const [loading,  setLoading]  = useState(false)
+  const [apiError, setApiError] = useState('')
 
   const set = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
@@ -90,15 +85,31 @@ export default function BusinessSignupForm() {
       return
     }
     setErrors({})
+    setApiError('')
     setLoading(true)
-    // TODO: llamada a la API — registro de negocio
-    setLoading(false)
+    try {
+      await registerWithEmail({
+        email:    form.email,
+        password: form.password,
+        role:     'BUSINESS_OWNER',
+        name:     form.contactName,
+        phone:    form.phone,
+      })
+      navigate('/business/dashboard')
+    } catch (err) {
+      setApiError(resolveFirebaseError(err))
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+      {apiError && (
+        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{apiError}</p>
+      )}
 
-      {/* ── Tipo de negocio ── */}
+      {/* Tipo de negocio */}
       <div className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-neutral-700">Tipo de negocio</span>
         <div className="flex flex-wrap gap-2">
@@ -124,7 +135,6 @@ export default function BusinessSignupForm() {
         </div>
       </div>
 
-      {/* ── Nombre del negocio ── */}
       <InputField
         id="business-name"
         label="Nombre del negocio"
@@ -137,7 +147,6 @@ export default function BusinessSignupForm() {
         required
       />
 
-      {/* ── Nombre de contacto ── */}
       <InputField
         id="business-contact"
         label="Nombre de contacto"
@@ -150,7 +159,6 @@ export default function BusinessSignupForm() {
         required
       />
 
-      {/* ── Email y teléfono ── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <InputField
           id="business-email"
@@ -176,7 +184,6 @@ export default function BusinessSignupForm() {
         />
       </div>
 
-      {/* ── Contraseña ── */}
       <PasswordInput
         id="business-password"
         label="Contraseña"
@@ -204,4 +211,13 @@ export default function BusinessSignupForm() {
       </Button>
     </form>
   )
+}
+
+function resolveFirebaseError(err) {
+  const map = {
+    'auth/email-already-in-use': 'Este correo ya está registrado.',
+    'auth/invalid-email':        'El correo no es válido.',
+    'auth/weak-password':        'La contraseña es muy débil.',
+  }
+  return map[err?.code] ?? 'Ocurrió un error. Intenta de nuevo.'
 }

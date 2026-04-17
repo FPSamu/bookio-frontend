@@ -1,5 +1,6 @@
-export default function Divider({ label, className = '' }) {
-  if (!label) {
+export default function Divider({ label, children, className = '' }) {
+  const text = children ?? label
+  if (!text) {
     return <hr className={`border-t border-neutral-200 ${className}`} />
   }
 
@@ -7,7 +8,7 @@ export default function Divider({ label, className = '' }) {
     <div className={`flex items-center gap-3 ${className}`}>
       <span className="flex-1 border-t border-neutral-200" />
       <span className="text-xs font-medium text-neutral-400 select-none whitespace-nowrap">
-        {label}
+        {text}
       </span>
       <span className="flex-1 border-t border-neutral-200" />
     </div>

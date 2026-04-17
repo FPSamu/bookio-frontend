@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import InputField from '../ui/InputField'
 import PasswordInput from '../ui/PasswordInput'
 import Button from '../ui/Button'
+import { useAuth } from '../../context/AuthContext'
 
 function validate(form) {
   const errors = {}
@@ -17,9 +19,13 @@ function validate(form) {
 }
 
 export default function LoginForm() {
+  const { loginWithEmail } = useAuth()
+  const navigate = useNavigate()
+
   const [form, setForm] = useState({ email: '', password: '' })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
+  const [apiError, setApiError] = useState('')
 
   const set = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
@@ -32,13 +38,24 @@ export default function LoginForm() {
       return
     }
     setErrors({})
+    setApiError('')
     setLoading(true)
-    // TODO: llamada a la API
-    setLoading(false)
+    try {
+      const user = await loginWithEmail(form)
+      navigate(user.role === 'BUSINESS_OWNER' ? '/business/dashboard' : '/dashboard')
+    } catch (err) {
+      setApiError(resolveFirebaseError(err))
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+      {apiError && (
+        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{apiError}</p>
+      )}
+
       <InputField
         id="login-email"
         label="Correo electrónico"
@@ -76,4 +93,15 @@ export default function LoginForm() {
       </Button>
     </form>
   )
+}
+
+function resolveFirebaseError(err) {
+  const map = {
+    'auth/invalid-credential':   'Correo o contraseña incorrectos.',
+    'auth/user-not-found':       'No existe una cuenta con este correo.',
+    'auth/wrong-password':       'Contraseña incorrecta.',
+    'auth/too-many-requests':    'Demasiados intentos. Intenta más tarde.',
+    'auth/user-disabled':        'Esta cuenta ha sido deshabilitada.',
+  }
+  return map[err?.code] ?? 'Ocurrió un error. Intenta de nuevo.'
 }
