@@ -1,17 +1,23 @@
+import { useState } from 'react'
 import { useParams, useNavigate, Link, Navigate } from 'react-router-dom'
 import AuthLayout from '../../layouts/AuthLayout'
 import AccountTypeSelector from '../../components/auth/AccountTypeSelector'
 import ClientSignupForm from '../../components/auth/ClientSignupForm'
 import BusinessSignupForm from '../../components/auth/BusinessSignupForm'
+import GoogleButton from '../../components/auth/GoogleButton'
 import Divider from '../../components/ui/Divider'
+import { useAuth } from '../../context/AuthContext'
 
 const VALID_TYPES = ['client', 'business']
-
-// ── Página ────────────────────────────────────────────────────────────────────
+const ROLE_MAP    = { client: 'CLIENT', business: 'BUSINESS_OWNER' }
 
 export default function SignupPage() {
   const { type } = useParams()
   const navigate = useNavigate()
+  const { loginWithGoogle } = useAuth()
+
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const [googleError,   setGoogleError]   = useState('')
 
   if (!VALID_TYPES.includes(type)) {
     return <Navigate to="/signup/client" replace />
@@ -21,10 +27,24 @@ export default function SignupPage() {
     navigate(`/signup/${newType}`, { replace: true })
   }
 
+  const handleGoogle = async () => {
+    setGoogleError('')
+    setGoogleLoading(true)
+    try {
+      const role = ROLE_MAP[type]
+      const user = await loginWithGoogle(role)
+      navigate(user.role === 'BUSINESS_OWNER' ? '/business/dashboard' : '/dashboard')
+    } catch (err) {
+      if (err?.code !== 'auth/popup-closed-by-user') {
+        setGoogleError('No se pudo registrar con Google. Intenta de nuevo.')
+      }
+    } finally {
+      setGoogleLoading(false)
+    }
+  }
+
   return (
     <AuthLayout>
-
-      {/* Encabezado */}
       <div className="mb-6 flex flex-col gap-1">
         <h1 className="text-2xl font-semibold leading-tight text-neutral-900">
           Crear una cuenta
@@ -34,12 +54,17 @@ export default function SignupPage() {
         </p>
       </div>
 
-      {/* Selector de tipo de cuenta */}
       <AccountTypeSelector value={type} onChange={handleTypeChange} />
 
-      <Divider className="my-6" />
+      <div className="mt-6">
+        <GoogleButton onClick={handleGoogle} loading={googleLoading} />
+        {googleError && (
+          <p className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{googleError}</p>
+        )}
+      </div>
 
-      {/* Formularios */}
+      <Divider className="my-6">o regístrate con correo</Divider>
+
       <div className={type === 'client' ? 'block' : 'hidden'}>
         <ClientSignupForm />
       </div>
@@ -47,7 +72,6 @@ export default function SignupPage() {
         <BusinessSignupForm />
       </div>
 
-      {/* Footer: ir a login */}
       <p className="mt-6 text-center text-sm text-neutral-500">
         ¿Ya tienes una cuenta?{' '}
         <Link
