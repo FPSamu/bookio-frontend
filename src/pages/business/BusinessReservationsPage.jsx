@@ -1,77 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import BusinessLayout from '../../layouts/BusinessLayout'
 import CalendarGrid from '../../components/business/CalendarGrid'
 import DayReservationList from '../../components/business/DayReservationList'
+import businessService from '../../services/business.service'
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
-// TODO: reemplazar con llamada a la API (GET /business/reservations?date=YYYY-MM-DD)
-
-const MOCK_RESERVATIONS = [
-  // ── Restaurante ───────────────────────────────────────────────────────────
-  {
-    id: '1', clientName: 'Juan García', clientPhone: '55 1234 5678',
-    partySize: 4, serviceName: 'Mesa interior', time: '13:00', duration: 90,
-    status: 'confirmed', notes: 'Celebración de cumpleaños',
-    date: '2026-03-26',
-  },
-  {
-    id: '2', clientName: 'María López', clientPhone: '',
-    partySize: 2, serviceName: 'Mesa terraza', time: '14:30', duration: 60,
-    status: 'confirmed', notes: '',
-    date: '2026-03-26',
-  },
-  {
-    id: '3', clientName: 'Carlos Ruiz', clientPhone: '55 9876 5432',
-    partySize: 6, serviceName: 'Salón privado', time: '20:00', duration: 120,
-    status: 'pending', notes: 'Alergia a nueces',
-    date: '2026-03-26',
-  },
-  {
-    id: '4', clientName: 'Ana Martínez', clientPhone: '',
-    partySize: 2, serviceName: 'Mesa interior', time: '21:00', duration: 90,
-    status: 'cancelled', notes: '',
-    date: '2026-03-26',
-  },
-  // ── Spa ───────────────────────────────────────────────────────────────────
-  {
-    id: '5', clientName: 'Sofía Torres', clientPhone: '55 5555 1234',
-    partySize: 1, serviceName: 'Masaje relajación 60 min', time: '11:00', duration: 60,
-    status: 'confirmed', notes: 'Prefiere presión media',
-    date: '2026-03-28',
-  },
-  {
-    id: '6', clientName: 'Roberto Sánchez', clientPhone: '',
-    partySize: 2, serviceName: 'Ritual de pareja', time: '16:00', duration: 90,
-    status: 'confirmed', notes: '',
-    date: '2026-03-28',
-  },
-  // ── Médico ────────────────────────────────────────────────────────────────
-  {
-    id: '7', clientName: 'Laura Gómez', clientPhone: '55 4321 8765',
-    partySize: 1, serviceName: 'Consulta dermatológica', time: '10:00', duration: 30,
-    status: 'confirmed', notes: 'Primera visita',
-    date: '2026-04-02',
-  },
-  {
-    id: '8', clientName: 'Diego Hernández', clientPhone: '',
-    partySize: 1, serviceName: 'Limpieza dental', time: '12:00', duration: 45,
-    status: 'pending', notes: '',
-    date: '2026-04-02',
-  },
-  // ── Salón ─────────────────────────────────────────────────────────────────
-  {
-    id: '9', clientName: 'Valeria Ríos', clientPhone: '55 7890 1234',
-    partySize: 1, serviceName: 'Corte y coloración', time: '14:00', duration: 120,
-    status: 'confirmed', notes: 'Balayage rubio',
-    date: '2026-04-05',
-  },
-  {
-    id: '10', clientName: 'Andrés Peña', clientPhone: '',
-    partySize: 1, serviceName: 'Corte y barba', time: '17:30', duration: 45,
-    status: 'confirmed', notes: '',
-    date: '2026-04-05',
-  },
-]
+// Eliminado MOCK_RESERVATIONS
 
 function toKey(date) {
   return [
@@ -88,19 +21,40 @@ export default function BusinessReservationsPage() {
   const [selectedDate, setSelectedDate] = useState(today)
   const [year,  setYear]  = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
-  const [loading] = useState(false) // TODO: true mientras carga la API
+  const [loading, setLoading] = useState(true)
+  const [reservationsList, setReservationsList] = useState([])
+
+  useEffect(() => {
+    let isMounted = true
+    const fetchReservations = async () => {
+      try {
+        setLoading(true)
+        // Pedimos todas las reservaciones (sin date string) para pintar en el calendario o de un rango
+        const data = await businessService.getReservations()
+        if (isMounted) {
+          setReservationsList(data.reservations || data) // Asegurar según la respuesta base (array o propiedad array)
+        }
+      } catch (error) {
+        console.error('Error al cargar reservaciones:', error)
+      } finally {
+        if (isMounted) setLoading(false)
+      }
+    }
+    fetchReservations()
+    return () => { isMounted = false }
+  }, [])
 
   const reservationDates = useMemo(
-    () => new Set(MOCK_RESERVATIONS.map((r) => r.date)),
-    []
+    () => new Set((Array.isArray(reservationsList) ? reservationsList : []).map((r) => r.date)),
+    [reservationsList]
   )
 
   const dayReservations = useMemo(() => {
     const key = toKey(selectedDate)
-    return MOCK_RESERVATIONS
+    return (Array.isArray(reservationsList) ? reservationsList : [])
       .filter((r) => r.date === key)
-      .sort((a, b) => a.time.localeCompare(b.time))
-  }, [selectedDate])
+      .sort((a, b) => (a.time || '').localeCompare(b.time || ''))
+  }, [selectedDate, reservationsList])
 
   const handleMonthChange = (delta) => {
     const d = new Date(year, month + delta, 1)
