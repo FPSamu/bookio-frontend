@@ -77,16 +77,10 @@ export default function DashboardPage() {
 
   return (
     <ClientLayout>
-
-      {/* ── Buscador ─────────────────────────────────────────────────── */}
       <section className="mb-6">
         <div className="mb-4">
-          <h1 className="text-2xl font-bold text-neutral-900">
-            ¿Qué quieres reservar hoy?
-          </h1>
-          <p className="mt-1 text-sm text-neutral-400">
-            Descubre y reserva los mejores lugares cerca de ti.
-          </p>
+          <h1 className="text-2xl font-bold text-neutral-900">¿Qué quieres reservar hoy?</h1>
+          <p className="mt-1 text-sm text-neutral-400">Descubre y reserva los mejores lugares cerca de ti.</p>
         </div>
         <SearchBar
           value={searchQuery}
@@ -95,7 +89,6 @@ export default function DashboardPage() {
         />
       </section>
 
-      {/* ── Filtros ───────────────────────────────────────────────────── */}
       <section className="mb-8 flex flex-col gap-3">
         <BusinessTypeFilter selected={selectedType} onChange={handleTypeChange} />
         {selectedType !== ALL && (
@@ -108,14 +101,13 @@ export default function DashboardPage() {
         <RatingFilter value={minRating} onChange={setMinRating} />
       </section>
 
-      {/* ── Recomendaciones — solo si no hay filtros activos ──────────── */}
       {!isFiltering && (
         <section className="mb-10">
           <SectionTitle
             title="Recomendaciones para ti"
             subtitle="Basadas en calificación y popularidad"
             className="mb-4"
-            action={{ label: 'Ver todos', onClick: () => {} }}
+            action={{ label: 'Ver todos', onClick: () => handleClearFilters() }}
           />
           <BusinessGrid
             businesses={recommended}
@@ -126,7 +118,6 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {/* ── Resultados / Todos ────────────────────────────────────────── */}
       <section>
         <SectionTitle
           title={isFiltering ? 'Resultados de búsqueda' : 'Todos los negocios'}
@@ -136,11 +127,7 @@ export default function DashboardPage() {
               : 'Explora restaurantes, spas, clínicas y salones'
           }
           className="mb-4"
-          action={
-            isFiltering
-              ? { label: 'Limpiar filtros', onClick: handleClearFilters }
-              : undefined
-          }
+          action={isFiltering ? { label: 'Limpiar filtros', onClick: handleClearFilters } : undefined}
         />
         <BusinessGrid
           businesses={filteredBusinesses}
@@ -150,7 +137,6 @@ export default function DashboardPage() {
           emptyMessage="No encontramos negocios con esos filtros. Intenta ajustar tu búsqueda."
         />
       </section>
-
     </ClientLayout>
   )
 }
