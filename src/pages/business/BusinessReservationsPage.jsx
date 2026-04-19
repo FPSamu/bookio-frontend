@@ -2,9 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import BusinessLayout from '../../layouts/BusinessLayout'
 import CalendarGrid from '../../components/business/CalendarGrid'
 import DayReservationList from '../../components/business/DayReservationList'
-import businessService from '../../services/business.service'
-
-// Eliminado MOCK_RESERVATIONS
+import { getBusinessReservations } from '../../services/businesses'
 
 function toKey(date) {
   return [
@@ -14,47 +12,41 @@ function toKey(date) {
   ].join('-')
 }
 
-// ── Página ────────────────────────────────────────────────────────────────────
-
 export default function BusinessReservationsPage() {
   const today = new Date()
-  const [selectedDate, setSelectedDate] = useState(today)
-  const [year,  setYear]  = useState(today.getFullYear())
-  const [month, setMonth] = useState(today.getMonth())
-  const [loading, setLoading] = useState(true)
-  const [reservationsList, setReservationsList] = useState([])
+  const [allReservations, setAllReservations] = useState([])
+  const [selectedDate,    setSelectedDate]    = useState(today)
+  const [year,            setYear]            = useState(today.getFullYear())
+  const [month,           setMonth]           = useState(today.getMonth())
+  const [loading,         setLoading]         = useState(true)
 
   useEffect(() => {
-    let isMounted = true
-    const fetchReservations = async () => {
+    let cancelled = false
+    async function fetchAll() {
+      setLoading(true)
       try {
-        setLoading(true)
-        // Pedimos todas las reservaciones (sin date string) para pintar en el calendario o de un rango
-        const data = await businessService.getReservations()
-        if (isMounted) {
-          setReservationsList(data.reservations || data) // Asegurar según la respuesta base (array o propiedad array)
-        }
-      } catch (error) {
-        console.error('Error al cargar reservaciones:', error)
+        const data = await getBusinessReservations()
+        if (!cancelled) setAllReservations(data)
+      } catch (err) {
+        console.error('Error cargando reservaciones:', err)
       } finally {
-        if (isMounted) setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
-    fetchReservations()
-    return () => { isMounted = false }
+    fetchAll()
   }, [])
 
   const reservationDates = useMemo(
-    () => new Set((Array.isArray(reservationsList) ? reservationsList : []).map((r) => r.date)),
-    [reservationsList]
+    () => new Set(allReservations.map((r) => r.date)),
+    [allReservations]
   )
 
   const dayReservations = useMemo(() => {
     const key = toKey(selectedDate)
-    return (Array.isArray(reservationsList) ? reservationsList : [])
+    return allReservations
       .filter((r) => r.date === key)
-      .sort((a, b) => (a.time || '').localeCompare(b.time || ''))
-  }, [selectedDate, reservationsList])
+      .sort((a, b) => a.time.localeCompare(b.time))
+  }, [allReservations, selectedDate])
 
   const handleMonthChange = (delta) => {
     const d = new Date(year, month + delta, 1)

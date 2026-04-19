@@ -4,6 +4,7 @@ import InputField from '../ui/InputField'
 import PasswordInput from '../ui/PasswordInput'
 import Button from '../ui/Button'
 import { useAuth } from '../../context/AuthContext'
+import { registerBusiness } from '../../services/businesses'
 
 const BUSINESS_TYPES = [
   { value: 'restaurant', label: 'Restaurante' },
@@ -59,6 +60,7 @@ export default function BusinessSignupForm() {
   const [form, setForm] = useState({
     businessType: 'restaurant',
     businessName: '',
+    address:      '',
     contactName:  '',
     email:        '',
     phone:        '',
@@ -94,6 +96,11 @@ export default function BusinessSignupForm() {
         role:     'BUSINESS_OWNER',
         name:     form.contactName,
         phone:    form.phone,
+      })
+      await registerBusiness({
+        name:    form.businessName,
+        type:    form.businessType,
+        address: form.address || undefined,
       })
       navigate('/business/dashboard')
     } catch (err) {
@@ -145,6 +152,17 @@ export default function BusinessSignupForm() {
         error={errors.businessName}
         autoComplete="organization"
         required
+      />
+
+      <InputField
+        id="business-address"
+        label="Dirección"
+        type="text"
+        placeholder="Av. Presidente Masaryk 61, Polanco, CDMX"
+        value={form.address}
+        onChange={set('address')}
+        error={errors.address}
+        autoComplete="street-address"
       />
 
       <InputField

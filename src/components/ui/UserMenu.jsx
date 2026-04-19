@@ -11,7 +11,7 @@ function LogOutIcon() {
   )
 }
 
-export default function UserMenu({ name, email, onLogout }) {
+export default function UserMenu({ name, email, badge, onLogout }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -45,6 +45,11 @@ export default function UserMenu({ name, email, onLogout }) {
             <p className="text-sm font-semibold text-neutral-900 truncate">{name ?? 'Usuario'}</p>
             {email && (
               <p className="text-xs text-neutral-400 truncate mt-0.5">{email}</p>
+            )}
+            {badge && (
+              <span className="mt-2 inline-block rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-medium text-neutral-600">
+                {badge}
+              </span>
             )}
           </div>
 

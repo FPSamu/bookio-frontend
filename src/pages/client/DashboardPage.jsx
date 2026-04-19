@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import ClientLayout from '../../layouts/ClientLayout'
 import SearchBar from '../../components/search/SearchBar'
 import BusinessTypeFilter from '../../components/search/BusinessTypeFilter'
@@ -6,69 +7,48 @@ import CategoryFilter, { CATEGORIES_BY_TYPE } from '../../components/search/Cate
 import RatingFilter from '../../components/search/RatingFilter'
 import BusinessGrid from '../../components/business/BusinessGrid'
 import SectionTitle from '../../components/ui/SectionTitle'
-import businessService from '../../services/business.service'
+import { getBusinesses, getRecommendedBusinesses } from '../../services/businesses'
 
 const ALL = 'all'
 
 export default function DashboardPage() {
-  const [businesses, setBusinesses] = useState([])
-  const [recommendations, setRecommendations] = useState([])
-  const [searchQuery, setSearchQuery] = useState('')
-  const [activeSearch, setActiveSearch] = useState('')
-  const [selectedType, setSelectedType] = useState(ALL)
+  const navigate = useNavigate()
+  const [businesses,      setBusinesses]      = useState([])
+  const [recommended,     setRecommended]     = useState([])
+  const [loading,         setLoading]         = useState(true)
+  const [searchQuery,     setSearchQuery]     = useState('')
+  const [activeSearch,    setActiveSearch]    = useState('')
+  const [selectedType,    setSelectedType]    = useState(ALL)
   const [selectedCategory, setSelectedCategory] = useState(ALL)
-  const [minRating, setMinRating] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [minRating,       setMinRating]       = useState(null)
 
-  // 1. Cargar Recomendaciones
   useEffect(() => {
-    const fetchRecommendations = async () => {
+    let cancelled = false
+    async function fetchAll() {
+      setLoading(true)
       try {
-        const response = await businessService.getRecommended()
-        // La API devuelve { data: [...] }, extraemos el arreglo
-        const recsArray = response.data || response.businesses || [];
-        setRecommendations(recsArray);
-      } catch (error) {
-        console.error("Error cargando recomendaciones:", error);
-        setRecommendations([]);
-      }
-    };
-    fetchRecommendations();
-  }, []);
-
-  // 2. Cargar Todos los Negocios
-  useEffect(() => {
-    const fetchBusinesses = async () => {
-      setLoading(true);
-      try {
-        const params = {
-          // Enviamos tal cual viene del filtro (ej. "SPA", "BARBERSHOP")
-          type: selectedType !== ALL ? selectedType : undefined,
-          category: selectedCategory !== ALL ? selectedCategory : undefined,
-          ratingGte: minRating || undefined, // Sincronizado con el controlador 'ratingGte'
-          search: activeSearch || undefined,
-        };
-
-        const response = await businessService.getAll(params);
-
-        // Sincronización con la estructura de tu API: { data: [...], meta: {...} }
-        const businessesArray = response.data || [];
-        setBusinesses(businessesArray);
-      } catch (error) {
-        console.error("Error en la API de Bookio:", error);
-        setBusinesses([]);
+        const [{ businesses: biz }, rec] = await Promise.all([
+          getBusinesses({ limit: 100 }),
+          getRecommendedBusinesses(),
+        ])
+        if (!cancelled) {
+          setBusinesses(biz)
+          setRecommended(rec)
+        }
+      } catch (err) {
+        console.error('Error cargando negocios:', err)
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false)
       }
-    };
-    fetchBusinesses();
-  }, [activeSearch, selectedType, selectedCategory, minRating]);
+    }
+    fetchAll()
+    return () => { cancelled = true }
+  }, [])
 
-  // CORRECCIÓN: No normalizar a minúsculas, Prisma usa MAYÚSCULAS
   const handleTypeChange = (type) => {
-    setSelectedType(type); // "SPA", "BARBERSHOP", etc.
-    setSelectedCategory(ALL);
-  };
+    setSelectedType(type)
+    setSelectedCategory(ALL)
+  }
 
   const handleClearFilters = () => {
     setActiveSearch('')
@@ -78,26 +58,16 @@ export default function DashboardPage() {
     setMinRating(null)
   }
 
-  // Filtrado local defensivo
   const filteredBusinesses = useMemo(() => {
-    if (!Array.isArray(businesses)) return [];
-
     return businesses.filter((b) => {
-      // 1. Búsqueda por nombre o tags (usando ?. por seguridad)
       const matchesSearch =
         !activeSearch ||
-        b.name.toLowerCase().includes(activeSearch.toLowerCase()) ||
-        (b.tags?.some((t) => t.toLowerCase().includes(activeSearch.toLowerCase())));
-
-      // 2. Tipo (Comparación directa con el ENUM de Prisma)
-      const matchesType = selectedType === ALL || b.type === selectedType;
-
-      // 3. Rating (Sincronizado con 'average_rating' de tu DB)
-      const matchesRating = minRating === null || (b.average_rating || 0) >= minRating;
-
-      return matchesSearch && matchesType && matchesRating;
-    });
-  }, [businesses, activeSearch, selectedType, minRating]);
+        b.name.toLowerCase().includes(activeSearch.toLowerCase())
+      const matchesType     = selectedType === ALL     || b.type === selectedType
+      const matchesRating   = minRating === null       || b.rating >= minRating
+      return matchesSearch && matchesType && matchesRating
+    })
+  }, [businesses, activeSearch, selectedType, minRating])
 
   const isFiltering =
     activeSearch ||
@@ -140,10 +110,10 @@ export default function DashboardPage() {
             action={{ label: 'Ver todos', onClick: () => handleClearFilters() }}
           />
           <BusinessGrid
-            businesses={recommendations}
+            businesses={recommended}
             loading={loading}
             skeletonCount={4}
-            onReserve={(id) => console.log("Reservando:", id)}
+            onReserve={(b) => navigate(`/booking/${b.id}`)}
           />
         </section>
       )}
@@ -163,7 +133,7 @@ export default function DashboardPage() {
           businesses={filteredBusinesses}
           loading={loading}
           skeletonCount={6}
-          onReserve={(id) => console.log("Reservando:", id)}
+          onReserve={(b) => navigate(`/booking/${b.id}`)}
           emptyMessage="No encontramos negocios con esos filtros. Intenta ajustar tu búsqueda."
         />
       </section>
