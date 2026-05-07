@@ -1,11 +1,10 @@
 import axios from 'axios'
 import { auth } from '../lib/firebase'
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api/v1',
-})
+const api = axios.create()
 
 api.interceptors.request.use(async (config) => {
+  config.baseURL = window.__BOOKIO_API_URL__ ?? import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api/v1'
   const user = auth.currentUser
   if (user) {
     const token = await user.getIdToken()
