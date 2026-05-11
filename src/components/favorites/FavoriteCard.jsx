@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import RatingStars from '../ui/RatingStars'
 
 function LocationIcon() {
@@ -103,9 +104,11 @@ export default function FavoriteCard({ business, onReserve, onRemove }) {
 
         {/* Nombre + estado abierto/cerrado */}
         <div className="flex items-start justify-between gap-2">
+          <Link to={`/business/${id}`} className="hover:underline flex-1 min-w-0">
           <h3 className="text-base font-semibold leading-snug text-neutral-900 line-clamp-1">
             {name}
           </h3>
+          </Link>
           <span
             className={[
               'flex-shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold',

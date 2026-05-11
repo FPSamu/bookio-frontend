@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import RatingStars from '../ui/RatingStars'
 
 function LocationIcon() {
@@ -50,8 +51,8 @@ export default function BusinessCard({ business, onReserve }) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-shadow duration-200 hover:shadow-[0_8px_40px_rgba(0,0,0,0.12)]">
 
-      {/* ── Imagen ── */}
-      <div className="relative h-44 w-full overflow-hidden">
+      {/* ── Imagen (enlaza al detalle) ── */}
+      <Link to={`/business/${id}`} className="relative block h-44 w-full overflow-hidden">
         {imageUrl ? (
           <img
             src={imageUrl}
@@ -82,15 +83,17 @@ export default function BusinessCard({ business, onReserve }) {
         >
           {isOpen ? 'Abierto' : 'Cerrado'}
         </span>
-      </div>
+      </Link>
 
       {/* ── Contenido ── */}
       <div className="flex flex-1 flex-col gap-3 p-4">
 
-        {/* Nombre */}
-        <h3 className="text-base font-semibold leading-snug text-neutral-900 line-clamp-1">
-          {name}
-        </h3>
+        {/* Nombre (enlaza al detalle) */}
+        <Link to={`/business/${id}`} className="hover:underline">
+          <h3 className="text-base font-semibold leading-snug text-neutral-900 line-clamp-1">
+            {name}
+          </h3>
+        </Link>
 
         {/* Rating */}
         <div className="flex items-center gap-2">
@@ -119,13 +122,19 @@ export default function BusinessCard({ business, onReserve }) {
           </div>
         )}
 
-        {/* Botón reservar — empujado al fondo de la tarjeta */}
-        <div className="mt-auto pt-1">
+        {/* Botones — empujados al fondo de la tarjeta */}
+        <div className="mt-auto flex gap-2 pt-1">
+          <Link
+            to={`/business/${id}`}
+            className="flex-1 rounded-full border border-neutral-200 py-2.5 text-center text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50"
+          >
+            Ver detalles
+          </Link>
           <button
             type="button"
             onClick={() => onReserve?.(business)}
             disabled={!isOpen}
-            className="w-full rounded-full bg-neutral-900 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex-1 rounded-full bg-neutral-900 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
           >
             Reservar
           </button>

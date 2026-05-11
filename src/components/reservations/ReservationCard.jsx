@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import ReservationStatusBadge from './ReservationStatusBadge'
 
 const MONTH_ABBR = [
@@ -83,7 +84,9 @@ const SERVICE_ICON = {
 }
 
 export default function ReservationCard({ reservation, onCancel }) {
+  const navigate = useNavigate()
   const {
+    id = '',
     businessName = 'Negocio',
     businessType = '',
     businessCategory = '',
@@ -102,11 +105,19 @@ export default function ReservationCard({ reservation, onCancel }) {
 
   const canCancel = status === 'confirmed' || status === 'pending'
 
+  function goToDetail() {
+    navigate(`/reservations/${id}`, { state: { reservation } })
+  }
+
   return (
     <article className="flex overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-shadow duration-200 hover:shadow-[0_8px_40px_rgba(0,0,0,0.10)]">
 
-      {/* ── Bloque de fecha ── */}
-      <div className="flex w-[68px] flex-shrink-0 flex-col items-center justify-center gap-0.5 border-r border-neutral-100 bg-neutral-50 py-4">
+      {/* ── Bloque de fecha (clicable) ── */}
+      <button
+        type="button"
+        onClick={goToDetail}
+        className="flex w-[68px] flex-shrink-0 flex-col items-center justify-center gap-0.5 border-r border-neutral-100 bg-neutral-50 py-4 transition-colors hover:bg-neutral-100"
+      >
         <span className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
           {month}
         </span>
@@ -114,15 +125,19 @@ export default function ReservationCard({ reservation, onCancel }) {
           {day}
         </span>
         <span className="text-[11px] text-neutral-400">{dayName}</span>
-      </div>
+      </button>
 
       {/* ── Contenido ── */}
       <div className="flex flex-1 flex-col gap-2 p-4">
 
-        {/* Nombre + badge */}
-        <div className="flex items-start justify-between gap-2">
+        {/* Nombre + badge (clicable) */}
+        <button
+          type="button"
+          onClick={goToDetail}
+          className="flex items-start justify-between gap-2 text-left"
+        >
           <div className="min-w-0">
-            <h3 className="truncate text-sm font-semibold text-neutral-900">
+            <h3 className="truncate text-sm font-semibold text-neutral-900 hover:underline">
               {businessName}
             </h3>
             {businessCategory && (
@@ -130,7 +145,7 @@ export default function ReservationCard({ reservation, onCancel }) {
             )}
           </div>
           <ReservationStatusBadge status={status} />
-        </div>
+        </button>
 
         {/* Servicio */}
         {serviceName && (
@@ -156,18 +171,25 @@ export default function ReservationCard({ reservation, onCancel }) {
           )}
         </div>
 
-        {/* Cancelar */}
-        {canCancel && (
-          <div className="mt-auto pt-1">
+        {/* Acciones */}
+        <div className="mt-auto flex items-center justify-between pt-1">
+          <button
+            type="button"
+            onClick={goToDetail}
+            className="text-xs font-semibold text-neutral-400 transition-colors hover:text-neutral-700"
+          >
+            Ver detalles →
+          </button>
+          {canCancel && (
             <button
               type="button"
               onClick={() => onCancel?.(reservation)}
               className="text-xs font-semibold text-red-500 transition-colors hover:text-red-700"
             >
-              Cancelar reserva
+              Cancelar
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </article>
   )
