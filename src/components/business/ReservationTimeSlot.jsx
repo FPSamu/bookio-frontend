@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import ReservationStatusBadge from '../reservations/ReservationStatusBadge'
+import { updateAppointmentStatus } from '../../services/appointments'
 
 function UserIcon() {
   return (
@@ -25,22 +27,54 @@ function NoteIcon() {
 }
 
 const STATUS_ACCENT = {
-  confirmed: 'bg-emerald-500',
-  pending:   'bg-amber-400',
-  cancelled: 'bg-neutral-300',
+  confirmed:   'bg-emerald-500',
+  pending:     'bg-amber-400',
+  cancelled:   'bg-neutral-300',
+  in_progress: 'bg-blue-500',
+  completed:   'bg-neutral-400',
+}
+
+const STATUS_ACTIONS = {
+  pending:     [{ value: 'CONFIRMED',   label: 'Confirmar', style: 'text-emerald-600 hover:bg-emerald-50' },
+                { value: 'CANCELLED',   label: 'Cancelar',  style: 'text-red-500 hover:bg-red-50'        }],
+  confirmed:   [{ value: 'IN_PROGRESS', label: 'Iniciar',   style: 'text-blue-600 hover:bg-blue-50'      },
+                { value: 'CANCELLED',   label: 'Cancelar',  style: 'text-red-500 hover:bg-red-50'        }],
+  in_progress: [{ value: 'COMPLETED',   label: 'Completar', style: 'text-neutral-600 hover:bg-neutral-100'}],
+  completed:   [],
+  cancelled:   [],
 }
 
 export default function ReservationTimeSlot({ reservation, onStatusChange }) {
   const {
+    id = '',
     clientName = 'Cliente',
     clientPhone = '',
     partySize = 1,
     serviceName = '',
     time = '',
     duration = null,
-    status = 'pending',
+    status: initialStatus = 'pending',
     notes = '',
   } = reservation
+
+  const [status,   setStatus]   = useState(initialStatus)
+  const [updating, setUpdating] = useState(false)
+
+  async function handleAction(newStatus) {
+    setUpdating(true)
+    try {
+      await updateAppointmentStatus(id, newStatus)
+      const next = newStatus.toLowerCase()
+      setStatus(next)
+      onStatusChange?.({ ...reservation, status: next })
+    } catch {
+      // silently ignore; status stays the same
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const actions = STATUS_ACTIONS[status] ?? []
 
   return (
     <div className="flex overflow-hidden rounded-xl border border-neutral-100 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-shadow duration-150 hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
@@ -80,6 +114,23 @@ export default function ReservationTimeSlot({ reservation, onStatusChange }) {
           <div className="flex items-start gap-1 text-[11px] text-neutral-400">
             <NoteIcon />
             <span className="italic line-clamp-1">{notes}</span>
+          </div>
+        )}
+
+        {/* Acciones de estado */}
+        {actions.length > 0 && (
+          <div className="flex items-center gap-2 pt-0.5">
+            {actions.map((action) => (
+              <button
+                key={action.value}
+                type="button"
+                onClick={() => handleAction(action.value)}
+                disabled={updating}
+                className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors disabled:opacity-40 ${action.style}`}
+              >
+                {updating ? '…' : action.label}
+              </button>
+            ))}
           </div>
         )}
       </div>

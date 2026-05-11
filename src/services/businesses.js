@@ -25,6 +25,9 @@ function transformBusiness(b) {
     reviewCount: b.review_count ?? 0,
     imageUrl: b.logo_url || null,
     location: b.address || '',
+    lat: b.latitude  ?? null,
+    lng: b.longitude ?? null,
+    phone: b.phone   || null,
     tags: [],
     isOpen: true,
   }
@@ -104,4 +107,65 @@ export async function registerBusiness({ name, type, address }) {
     address: address || undefined,
   })
   return data
+}
+
+export async function getBusinessById(businessId) {
+  const { data } = await api.get(`/businesses/${businessId}`)
+  const b = data.business || data
+  return {
+    id: b.id,
+    name: b.name,
+    type: toFrontendType(b.type),
+    rawType: b.type || '',
+    category: b.type ? b.type.charAt(0) + b.type.slice(1).toLowerCase() : '',
+    rating: b.average_rating ?? 0,
+    reviewCount: b.review_count ?? 0,
+    imageUrl: b.logo_url || null,
+    photos: Array.isArray(b.photos) ? b.photos : [],
+    location: b.address || '',
+    phone: b.phone || null,
+    tags: [],
+    isOpen: true,
+  }
+}
+
+export async function getBusinessServices(businessId) {
+  const { data } = await api.get(`/businesses/${businessId}/services`)
+  return data.services || data.data || []
+}
+
+export async function getBusinessSchedule(businessId) {
+  const { data } = await api.get(`/schedules/business/${businessId}`)
+  return data.schedules || data.data || []
+}
+
+export async function updateBusiness({ name, type, address, phone }) {
+  const body = { name }
+  if (type) body.type = FRONTEND_TO_BACKEND_TYPE[type] || type.toUpperCase()
+  if (address !== undefined) body.address = address
+  if (phone !== undefined) body.phone = phone
+  const { data } = await api.put('/businesses/mine', body)
+  clearBusinessCache()
+  return data
+}
+
+export async function uploadBusinessLogo(file) {
+  const formData = new FormData()
+  formData.append('logo', file)
+  const { data } = await api.patch('/businesses/mine/logo', formData)
+  clearBusinessCache()
+  return data.logo_url
+}
+
+export async function uploadBusinessPhotos(files) {
+  const formData = new FormData()
+  files.forEach((f) => formData.append('photos', f))
+  const { data } = await api.put('/businesses/mine/photos', formData)
+  clearBusinessCache()
+  return data.photos || []
+}
+
+export async function getBusinessReviews(businessId) {
+  const { data } = await api.get(`/reviews/business/${businessId}`)
+  return data.reviews || data.data || []
 }

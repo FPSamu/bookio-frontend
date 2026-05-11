@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import BusinessLayout from '../../layouts/BusinessLayout'
 import SectionTitle from '../../components/ui/SectionTitle'
 import Button from '../../components/ui/Button'
@@ -6,6 +6,10 @@ import InputField from '../../components/ui/InputField'
 import { getMyBusiness } from '../../services/businesses'
 import {
   createService,
+  updateService,
+  deleteService,
+  uploadServicePhoto,
+  uploadServicePhotos,
   getServiceSchedule,
   upsertServiceScheduleDay,
   removeServiceScheduleDay,
@@ -330,29 +334,240 @@ function ChevronIcon({ open }) {
 
 // ── Tarjeta de servicio ───────────────────────────────────────────────────────
 
-function ServiceCard({ service }) {
-  const { id, name, duration_minutes, price } = service
-  const [expanded, setExpanded] = useState(false)
+function pad4(arr) {
+  const out = [...(arr ?? [])]
+  while (out.length < 4) out.push(null)
+  return out.slice(0, 4)
+}
+
+function ServiceCard({ service, onUpdated, onDeleted }) {
+  const { id, name, duration_minutes, price, photos = [], photo_url } = service
+  const firstPhoto = photos[0] || photo_url || null
+
+  const [expanded,  setExpanded]  = useState(false)
+  const [editing,   setEditing]   = useState(false)
+  const [deleting,  setDeleting]  = useState(false)
+
+  // Edit form state
+  const [editName,     setEditName]     = useState(name)
+  const [editDuration, setEditDuration] = useState(String(duration_minutes))
+  const [editPrice,    setEditPrice]    = useState(String(price))
+  const [editSaving,   setEditSaving]   = useState(false)
+  const [editError,    setEditError]    = useState('')
+
+  // Photo grid state for edit panel
+  const [editPreviews, setEditPreviews] = useState(() => pad4(photos))
+  const [editFiles,    setEditFiles]    = useState([null, null, null, null])
+  const editRefs = [useRef(null), useRef(null), useRef(null), useRef(null)]
+
+  function openEdit() {
+    setEditPreviews(pad4(service.photos))
+    setEditFiles([null, null, null, null])
+    setEditing(true)
+    setExpanded(false)
+  }
+
+  function handleEditPhotoChange(i, e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setEditFiles((prev)    => { const n = [...prev];    n[i] = file;                       return n })
+    setEditPreviews((prev) => { const n = [...prev];    n[i] = URL.createObjectURL(file);  return n })
+  }
+
+  function removeEditPhoto(i) {
+    setEditFiles((prev)    => { const n = [...prev]; n[i] = null; return n })
+    setEditPreviews((prev) => { const n = [...prev]; n[i] = null; return n })
+  }
+
+  async function handleEditSave() {
+    if (!editName.trim() || !editDuration || !editPrice) { setEditError('Completa todos los campos.'); return }
+    setEditError('')
+    setEditSaving(true)
+    try {
+      const updated = await updateService(id, {
+        name: editName.trim(),
+        durationMinutes: Number(editDuration),
+        price: Number(editPrice),
+      })
+
+      // Build final photos array: upload new files, keep existing URLs, drop nulls
+      const finalPhotos = []
+      for (let i = 0; i < 4; i++) {
+        if (editFiles[i]) {
+          const url = await uploadServicePhoto(id, editFiles[i])
+          finalPhotos.push(url)
+        } else if (editPreviews[i]) {
+          finalPhotos.push(editPreviews[i])
+        }
+      }
+      onUpdated({
+        ...service,
+        ...updated,
+        name: editName.trim(),
+        duration_minutes: Number(editDuration),
+        price: Number(editPrice),
+        photos: finalPhotos,
+        photo_url: finalPhotos[0] ?? null,
+      })
+      setEditing(false)
+    } catch (err) {
+      setEditError(err?.response?.data?.error || 'Error al guardar. Intenta de nuevo.')
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      await deleteService(id)
+      onDeleted(id)
+    } catch {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div className="rounded-xl border border-neutral-100 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-      <button
-        type="button"
-        onClick={() => setExpanded((e) => !e)}
-        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left"
-      >
-        <div className="flex flex-col gap-0.5 min-w-0">
-          <span className="truncate text-sm font-semibold text-neutral-900">{name}</span>
-          <span className="text-xs text-neutral-400">~{duration_minutes} min</span>
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-3">
+        {/* Miniatura (primera foto, solo lectura) */}
+        <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
+          {firstPhoto ? (
+            <img src={firstPhoto} alt={name} className="h-full w-full object-cover" />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center text-neutral-300">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <span className="text-sm font-bold text-neutral-900">
-            ${Number(price).toLocaleString('es-MX', { minimumFractionDigits: 0 })}
-          </span>
-          <ChevronIcon open={expanded} />
-        </div>
-      </button>
 
+        {/* Info */}
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          className="flex flex-1 items-center justify-between gap-4 text-left min-w-0"
+        >
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="truncate text-sm font-semibold text-neutral-900">{name}</span>
+            <span className="text-xs text-neutral-400">~{duration_minutes} min</span>
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <span className="text-sm font-bold text-neutral-900">
+              ${Number(price).toLocaleString('es-MX', { minimumFractionDigits: 0 })}
+            </span>
+            <ChevronIcon open={expanded} />
+          </div>
+        </button>
+
+        {/* Acciones */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            type="button"
+            onClick={openEdit}
+            title="Editar"
+            className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+            title="Eliminar"
+            className="rounded-lg p-1.5 text-neutral-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-40"
+          >
+            {deleting ? (
+              <svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                <path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+              </svg>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Editor inline */}
+      {editing && (
+        <div className="border-t border-neutral-100 px-4 pb-4 pt-3 flex flex-col gap-3">
+          <p className="text-xs font-semibold text-neutral-700">Editar servicio</p>
+          {editError && <p className="text-xs text-red-500">{editError}</p>}
+
+          {/* Cuadrícula de 4 fotos */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-xs font-medium text-neutral-500">Fotos <span className="font-normal text-neutral-400">(máx. 4)</span></p>
+            <div className="grid grid-cols-4 gap-2">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="relative aspect-square">
+                  <button
+                    type="button"
+                    onClick={() => editRefs[i].current?.click()}
+                    className="h-full w-full overflow-hidden rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-100 transition-colors hover:border-neutral-400 hover:bg-neutral-50"
+                  >
+                    {editPreviews[i] ? (
+                      <img src={editPreviews[i]} alt={`foto ${i + 1}`} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-neutral-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                          fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" />
+                          <polyline points="21 15 16 10 5 21" />
+                        </svg>
+                        <span className="text-[9px] font-medium">{i + 1}</span>
+                      </div>
+                    )}
+                  </button>
+                  {editPreviews[i] && (
+                    <button
+                      type="button"
+                      onClick={() => removeEditPhoto(i)}
+                      className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-neutral-900 text-white hover:bg-red-500"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  )}
+                  <input
+                    ref={editRefs[i]}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleEditPhotoChange(i, e)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <InputField id={`edit-name-${id}`} label="Nombre" value={editName} onChange={(e) => setEditName(e.target.value)} />
+          <div className="grid grid-cols-2 gap-3">
+            <InputField id={`edit-dur-${id}`} label="Duración (min)" type="number" value={editDuration} onChange={(e) => setEditDuration(e.target.value)} />
+            <InputField id={`edit-price-${id}`} label="Precio ($)" type="number" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} />
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={handleEditSave} disabled={editSaving}>{editSaving ? 'Guardando…' : 'Guardar'}</Button>
+            <Button variant="secondary" onClick={() => { setEditing(false); setEditError('') }}>Cancelar</Button>
+          </div>
+        </div>
+      )}
+
+      {/* Horario */}
       {expanded && (
         <div className="border-t border-neutral-100 px-5 pb-5 pt-4">
           <ServiceScheduleEditor serviceId={id} />
@@ -367,10 +582,25 @@ function ServiceCard({ service }) {
 function ServiceForm({ businessType, onCreated, onCancel }) {
   const config = TYPE_CONFIG[businessType] ?? DEFAULT_CONFIG
 
-  const [form,     setForm]     = useState({ name: '', duration: '', price: '' })
-  const [errors,   setErrors]   = useState({})
-  const [loading,  setLoading]  = useState(false)
-  const [apiError, setApiError] = useState('')
+  const [form,          setForm]          = useState({ name: '', duration: '', price: '' })
+  const [errors,        setErrors]        = useState({})
+  const [loading,       setLoading]       = useState(false)
+  const [apiError,      setApiError]      = useState('')
+  const [photoFiles,    setPhotoFiles]    = useState([null, null, null, null])
+  const [photoPreviews, setPhotoPreviews] = useState([null, null, null, null])
+  const photoInputRefs  = [useRef(null), useRef(null), useRef(null), useRef(null)]
+
+  function handlePhotoChange(index, e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPhotoFiles((prev) => { const next = [...prev]; next[index] = file; return next })
+    setPhotoPreviews((prev) => { const next = [...prev]; next[index] = URL.createObjectURL(file); return next })
+  }
+
+  function removePhoto(index) {
+    setPhotoFiles((prev) => { const next = [...prev]; next[index] = null; return next })
+    setPhotoPreviews((prev) => { const next = [...prev]; next[index] = null; return next })
+  }
 
   const setField = (field) => (e) => {
     setForm((p) => ({ ...p, [field]: e.target.value }))
@@ -396,11 +626,20 @@ function ServiceForm({ businessType, onCreated, onCancel }) {
     setApiError('')
     setLoading(true)
     try {
-      const service = await createService({
+      let service = await createService({
         name:            form.name.trim(),
         durationMinutes: Number(form.duration),
         price:           Number(form.price),
       })
+      const selectedFiles = photoFiles.filter(Boolean)
+      if (selectedFiles.length > 0) {
+        try {
+          const photos = await uploadServicePhotos(service.id, selectedFiles)
+          service = { ...service, photos, photo_url: photos[0] ?? null }
+        } catch {
+          // fotos opcionales — no bloquea si falla
+        }
+      }
       onCreated(service)
     } catch {
       setApiError('No se pudo crear el servicio. Intenta de nuevo.')
@@ -420,6 +659,54 @@ function ServiceForm({ businessType, onCreated, onCancel }) {
       {apiError && (
         <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{apiError}</p>
       )}
+
+      {/* Fotos del servicio (hasta 4) */}
+      <div className="flex flex-col gap-2">
+        <p className="text-xs font-medium text-neutral-500">Fotos del servicio <span className="font-normal text-neutral-400">(opcional, máx. 4)</span></p>
+        <div className="grid grid-cols-4 gap-2">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="relative aspect-square">
+              <button
+                type="button"
+                onClick={() => photoInputRefs[i].current?.click()}
+                className="h-full w-full overflow-hidden rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-100 transition-colors hover:border-neutral-400 hover:bg-neutral-50"
+              >
+                {photoPreviews[i] ? (
+                  <img src={photoPreviews[i]} alt={`foto ${i + 1}`} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-neutral-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                      fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" />
+                      <polyline points="21 15 16 10 5 21" />
+                    </svg>
+                    <span className="text-[9px] font-medium">{i + 1}</span>
+                  </div>
+                )}
+              </button>
+              {photoPreviews[i] && (
+                <button
+                  type="button"
+                  onClick={() => removePhoto(i)}
+                  className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-neutral-900 text-white hover:bg-red-500"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              )}
+              <input
+                ref={photoInputRefs[i]}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handlePhotoChange(i, e)}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
 
       {config.suggestions.length > 0 && (
         <div className="flex flex-col gap-1.5">
@@ -526,6 +813,14 @@ export default function BusinessServicesPage() {
     setShowForm(false)
   }, [])
 
+  const handleUpdated = useCallback((updatedService) => {
+    setServices((prev) => prev.map((s) => s.id === updatedService.id ? updatedService : s))
+  }, [])
+
+  const handleDeleted = useCallback((deletedId) => {
+    setServices((prev) => prev.filter((s) => s.id !== deletedId))
+  }, [])
+
   return (
     <BusinessLayout>
 
@@ -569,7 +864,7 @@ export default function BusinessServicesPage() {
         ) : (
           <div className="flex flex-col gap-3">
             {services.map((s) => (
-              <ServiceCard key={s.id} service={s} />
+              <ServiceCard key={s.id} service={s} onUpdated={handleUpdated} onDeleted={handleDeleted} />
             ))}
           </div>
         )}
