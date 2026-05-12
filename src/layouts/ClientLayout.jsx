@@ -67,14 +67,9 @@ const NAV_LINKS = [
 
 function Logo() {
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-950">
-        <span className="text-xs font-bold text-white">B</span>
-      </div>
-      <span className="text-base font-bold tracking-tight text-neutral-900">
-        Bookio
-      </span>
-    </div>
+    <span className="text-lg font-black tracking-tight text-neutral-900">
+      Bookio
+    </span>
   )
 }
 

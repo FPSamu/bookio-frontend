@@ -17,16 +17,16 @@ export default function AuthLayout({ children }) {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-3">
             <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400">
-              Para restaurantes y clientes
+              Restaurantes · Spas · Salones · Médicos
             </p>
             <h2 className="text-4xl font-bold leading-tight lg:text-5xl">
-              Reservas sin
+              Tu cita,
               <br />
-              complicaciones.
+              en segundos.
             </h2>
             <p className="max-w-xs text-sm leading-relaxed text-neutral-400">
-              Gestiona o realiza reservas en pocos pasos.
-              Sin llamadas, sin esperas.
+              Reserva en restaurantes, spas, barberías, salones y consultorios médicos.
+              Sin llamadas, sin filas, sin esperas.
             </p>
           </div>
 
@@ -41,8 +41,8 @@ export default function AuthLayout({ children }) {
               </span>
             </div>
             <div className="flex flex-col gap-0.5">
-              <p className="text-base font-semibold">Restaurante El Origen</p>
-              <p className="text-sm text-neutral-400">Hoy · 8:30 PM · 2 personas</p>
+              <p className="text-base font-semibold">Spa Serenity</p>
+              <p className="text-sm text-neutral-400">Hoy · 3:00 PM · Masaje relajante</p>
             </div>
             <div className="h-px w-full bg-neutral-800" />
             <div className="flex items-center gap-2">

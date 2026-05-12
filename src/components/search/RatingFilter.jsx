@@ -25,9 +25,9 @@ export default function RatingFilter({ value = null, onChange }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="flex-shrink-0 text-sm font-medium text-neutral-600">
-        Calificación mínima
+    <div className="flex items-center gap-2.5">
+      <span className="flex-shrink-0 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+        Calificación
       </span>
 
       <div className="flex items-center gap-0.5">
@@ -37,10 +37,10 @@ export default function RatingFilter({ value = null, onChange }) {
             type="button"
             onClick={() => handleClick(star)}
             className={[
-              'rounded p-0.5 transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400',
+              'rounded p-0.5 transition-colors duration-100 focus:outline-none',
               value !== null && star <= value
                 ? 'text-amber-400'
-                : 'text-neutral-300 hover:text-amber-300',
+                : 'text-neutral-200 hover:text-amber-300',
             ].join(' ')}
             aria-label={`Calificación mínima ${star}`}
             aria-pressed={value !== null && star <= value}
@@ -51,13 +51,7 @@ export default function RatingFilter({ value = null, onChange }) {
       </div>
 
       {value !== null && (
-        <button
-          type="button"
-          onClick={() => onChange?.(null)}
-          className="text-xs text-neutral-400 underline-offset-2 hover:text-neutral-700 hover:underline transition-colors"
-        >
-          Limpiar
-        </button>
+        <span className="text-xs font-medium text-amber-600">{value}★ o más</span>
       )}
     </div>
   )

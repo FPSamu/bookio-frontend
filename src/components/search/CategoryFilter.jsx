@@ -1,6 +1,10 @@
 export const CATEGORIES_BY_TYPE = {
-  all: [
-    { id: 'all', label: 'Todos' },
+  barbershop: [
+    { id: 'all',       label: 'Todos' },
+    { id: 'haircut',   label: 'Corte' },
+    { id: 'beard',     label: 'Barba' },
+    { id: 'fade',      label: 'Fade' },
+    { id: 'kids',      label: 'Niños' },
   ],
   restaurant: [
     { id: 'all',           label: 'Todos' },
@@ -42,6 +46,13 @@ export const CATEGORIES_BY_TYPE = {
     { id: 'makeup',   label: 'Maquillaje' },
     { id: 'keratin',  label: 'Keratina' },
   ],
+  other: [
+    { id: 'all',      label: 'Todos' },
+    { id: 'fitness',  label: 'Fitness' },
+    { id: 'pets',     label: 'Mascotas' },
+    { id: 'cleaning', label: 'Limpieza' },
+    { id: 'events',   label: 'Eventos' },
+  ],
 }
 
 export default function CategoryFilter({
@@ -61,10 +72,10 @@ export default function CategoryFilter({
               type="button"
               onClick={() => onChange?.(cat.id)}
               className={[
-                'flex flex-shrink-0 items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-1',
+                'flex flex-shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 focus:outline-none',
                 isActive
-                  ? 'border-neutral-900 bg-neutral-900 text-white'
-                  : 'border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400 hover:text-neutral-900',
+                  ? 'border-neutral-900 bg-neutral-900 text-white shadow-sm'
+                  : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:text-neutral-900',
               ].join(' ')}
             >
               {cat.icon && <span className="flex-shrink-0">{cat.icon}</span>}
