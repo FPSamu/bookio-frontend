@@ -117,7 +117,7 @@ export default function MapPage() {
   const [selected, setSelected] = useState(null)
   const [flyTarget, setFlyTarget] = useState(null)
 
-  const DEFAULT_CENTER = [19.4326, -99.1332] // Mexico City
+  const DEFAULT_CENTER = [20.6597, -103.3496] // Guadalajara
 
   useEffect(() => {
     getBusinesses({ limit: 200 })
