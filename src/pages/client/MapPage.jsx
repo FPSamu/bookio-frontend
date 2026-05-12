@@ -174,6 +174,7 @@ export default function MapPage() {
   const [locErr, setLocErr] = useState(null)
   const [radiusStep, setRadiusStep] = useState(2) // default: 5 km
 
+  const radius = RADIUS_STEPS[radiusStep]
   const DEFAULT_CENTER = [20.6597, -103.3496] // Guadalajara
 
   useEffect(() => {
