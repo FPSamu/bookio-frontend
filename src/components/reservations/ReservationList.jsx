@@ -27,13 +27,15 @@ export default function ReservationList({
   const message = emptyMessage ?? EMPTY_MESSAGES[activeTab] ?? 'No hay reservas.'
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       {loading ? (
         Array.from({ length: skeletonCount }, (_, i) => (
           <ReservationCardSkeleton key={i} />
         ))
       ) : reservations.length === 0 ? (
-        <EmptyState message={message} />
+        <div className="col-span-full">
+          <EmptyState message={message} />
+        </div>
       ) : (
         reservations.map((reservation) => (
           <ReservationCard

@@ -53,18 +53,30 @@ function placeholderGradient(id = '') {
   return PLACEHOLDER_GRADIENTS[index % PLACEHOLDER_GRADIENTS.length]
 }
 
+const TYPE_GRADIENT = {
+  restaurant: 'from-orange-100 to-amber-50',
+  spa:        'from-emerald-100 to-teal-50',
+  salon:      'from-violet-100 to-purple-50',
+  barbershop: 'from-amber-100 to-yellow-50',
+  medical:    'from-sky-100 to-blue-50',
+  other:      'from-neutral-100 to-neutral-50',
+}
+
 export default function FavoriteCard({ business, onReserve, onRemove }) {
   const {
     id = '',
     name = 'Negocio',
+    type = 'other',
     category = '',
     rating = 0,
     reviewCount = 0,
     imageUrl = null,
     location = '',
     tags = [],
-    isOpen = true,
+    isOpen = null,
   } = business
+
+  const gradient = TYPE_GRADIENT[type] ?? TYPE_GRADIENT.other
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-shadow duration-200 hover:shadow-[0_8px_40px_rgba(0,0,0,0.12)]">
@@ -75,10 +87,10 @@ export default function FavoriteCard({ business, onReserve, onRemove }) {
           <img
             src={imageUrl}
             alt={name}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className={`h-full w-full bg-gradient-to-br ${placeholderGradient(id)}`} />
+          <div className={`h-full w-full bg-gradient-to-br ${gradient}`} />
         )}
 
         {/* Badge de categoría */}
@@ -102,23 +114,21 @@ export default function FavoriteCard({ business, onReserve, onRemove }) {
       {/* ── Contenido ── */}
       <div className="flex flex-1 flex-col gap-3 p-4">
 
-        {/* Nombre + estado abierto/cerrado */}
+        {/* Nombre */}
         <div className="flex items-start justify-between gap-2">
           <Link to={`/business/${id}`} className="hover:underline flex-1 min-w-0">
-          <h3 className="text-base font-semibold leading-snug text-neutral-900 line-clamp-1">
-            {name}
-          </h3>
+            <h3 className="text-base font-semibold leading-snug text-neutral-900 line-clamp-1">
+              {name}
+            </h3>
           </Link>
-          <span
-            className={[
+          {isOpen !== null && (
+            <span className={[
               'flex-shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold',
-              isOpen
-                ? 'bg-emerald-50 text-emerald-700'
-                : 'bg-neutral-100 text-neutral-500',
-            ].join(' ')}
-          >
-            {isOpen ? 'Abierto' : 'Cerrado'}
-          </span>
+              isOpen ? 'bg-emerald-50 text-emerald-700' : 'bg-neutral-100 text-neutral-500',
+            ].join(' ')}>
+              {isOpen ? 'Abierto' : 'Cerrado'}
+            </span>
+          )}
         </div>
 
         {/* Rating */}

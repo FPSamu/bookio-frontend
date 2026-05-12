@@ -59,11 +59,11 @@ function ScissorsIcon() {
 }
 
 export const BUSINESS_TYPES = [
-  { id: 'all',        label: 'Todos',         icon: <GridIcon /> },
-  { id: 'RESTAURANT', label: 'Restaurantes',  icon: <ForkKnifeIcon /> },
-  { id: 'SPA',        label: 'Spas',          icon: <LeafIcon /> },
-  { id: 'MEDICAL',    label: 'Médicos',       icon: <StethoscopeIcon /> },
-  { id: 'BARBERSHOP',      label: 'Salón',         icon: <ScissorsIcon /> },
+  { id: 'all',        label: 'Todos',        icon: <GridIcon /> },
+  { id: 'restaurant', label: 'Restaurantes', icon: <ForkKnifeIcon /> },
+  { id: 'spa',        label: 'Spas',         icon: <LeafIcon /> },
+  { id: 'medical',    label: 'Médicos',      icon: <StethoscopeIcon /> },
+  { id: 'salon',      label: 'Salón',        icon: <ScissorsIcon /> },
 ]
 
 export default function BusinessTypeFilter({ selected = 'all', onChange }) {

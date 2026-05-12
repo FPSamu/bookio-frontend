@@ -4,7 +4,7 @@ const TYPE_MAP = {
   RESTAURANT: 'restaurant',
   SPA: 'spa',
   SALON: 'salon',
-  BARBERSHOP: 'salon',
+  BARBERSHOP: 'barbershop',
   MEDICAL: 'medical',
   OTHER: 'other',
 }
@@ -21,6 +21,7 @@ function transformAppointment(a) {
       ? a.business.type.charAt(0) + a.business.type.slice(1).toLowerCase()
       : '',
     businessLogoUrl:  a.business?.logo_url    || null,
+    businessImageUrl: (Array.isArray(a.business?.photos) ? a.business.photos[0] : null) || a.business?.logo_url || null,
     businessPhone:    a.business?.phone        || null,
     businessAddress:  a.business?.address      || null,
     serviceName:      a.service?.name          || '',

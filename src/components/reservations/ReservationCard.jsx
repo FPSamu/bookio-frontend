@@ -1,195 +1,189 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ReservationStatusBadge from './ReservationStatusBadge'
 
-const MONTH_ABBR = [
-  'ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN',
-  'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC',
-]
-const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+const TYPE_GRADIENT = {
+  restaurant: 'from-orange-400 to-amber-300',
+  spa:        'from-emerald-400 to-teal-300',
+  salon:      'from-violet-400 to-purple-300',
+  barbershop: 'from-amber-500 to-yellow-400',
+  medical:    'from-sky-400 to-blue-300',
+  other:      'from-neutral-400 to-neutral-300',
+}
+
+const MONTH_NAMES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+const DAY_NAMES   = ['dom','lun','mar','mié','jue','vie','sáb']
+
+function PinIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+      <circle cx="12" cy="10" r="3"/>
+    </svg>
+  )
+}
 
 function ClockIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
+    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16 14"/>
     </svg>
   )
-}
-
-function ForkKnifeIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
-      fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      aria-hidden="true">
-      <line x1="3" y1="2" x2="3" y2="22" /><line x1="21" y1="2" x2="21" y2="22" />
-      <line x1="3" y1="12" x2="9" y2="12" />
-      <path d="M9 2v10a3 3 0 0 1-3 3H3" />
-      <path d="M15 2a7 7 0 0 1 6 7v1h-6" />
-    </svg>
-  )
-}
-
-function LeafIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
-      fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      aria-hidden="true">
-      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z" />
-      <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
-    </svg>
-  )
-}
-
-function StethoscopeIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
-      fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      aria-hidden="true">
-      <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3" />
-      <path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4" />
-      <circle cx="20" cy="10" r="2" />
-    </svg>
-  )
-}
-
-function ScissorsIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
-      fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      aria-hidden="true">
-      <circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" />
-      <line x1="20" y1="4" x2="8.12" y2="15.88" />
-      <line x1="14.47" y1="14.48" x2="20" y2="20" />
-      <line x1="8.12" y1="8.12" x2="12" y2="12" />
-    </svg>
-  )
-}
-
-const SERVICE_ICON = {
-  restaurant: <ForkKnifeIcon />,
-  spa:        <LeafIcon />,
-  medical:    <StethoscopeIcon />,
-  salon:      <ScissorsIcon />,
 }
 
 export default function ReservationCard({ reservation, onCancel }) {
   const navigate = useNavigate()
+  const [confirming, setConfirming] = useState(false)
   const {
-    id = '',
-    businessName = 'Negocio',
-    businessType = '',
-    businessCategory = '',
-    serviceName = '',
-    date = null,
-    time = '',
-    status = 'pending',
-    price = null,
-    duration = null,
+    id               = '',
+    businessName     = 'Negocio',
+    businessType     = 'other',
+    businessLogoUrl  = null,
+    businessImageUrl = null,
+    businessAddress  = null,
+    serviceName      = '',
+    date             = null,
+    time             = '',
+    status           = 'pending',
+    price            = null,
+    duration         = null,
   } = reservation
 
-  const dateObj = date ? new Date(date) : null
-  const day = dateObj ? dateObj.getDate() : '--'
-  const month = dateObj ? MONTH_ABBR[dateObj.getMonth()] : '---'
-  const dayName = dateObj ? DAY_NAMES[dateObj.getDay()] : ''
+  const bannerSrc = businessImageUrl || businessLogoUrl
 
+  const dateObj = date ? new Date(date) : null
+  const formattedDate = dateObj
+    ? `${DAY_NAMES[dateObj.getDay()]}, ${dateObj.getDate()} ${MONTH_NAMES[dateObj.getMonth()]} ${dateObj.getFullYear()}`
+    : null
+
+  const gradient = TYPE_GRADIENT[businessType] ?? TYPE_GRADIENT.other
   const canCancel = status === 'confirmed' || status === 'pending'
 
-  function goToDetail() {
+  function goToDetail(e) {
+    e?.stopPropagation()
     navigate(`/reservations/${id}`, { state: { reservation } })
   }
 
   return (
-    <article className="flex overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-shadow duration-200 hover:shadow-[0_8px_40px_rgba(0,0,0,0.10)]">
+    <article
+      onClick={goToDetail}
+      className="group overflow-hidden rounded-2xl bg-white border border-neutral-100 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+    >
+      {/* Photo / color banner */}
+      <div className="relative h-44 overflow-hidden">
+        {bannerSrc ? (
+          <img
+            src={bannerSrc}
+            alt={businessName}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className={`h-full w-full bg-gradient-to-br ${gradient}`} />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
 
-      {/* ── Bloque de fecha (clicable) ── */}
-      <button
-        type="button"
-        onClick={goToDetail}
-        className="flex w-[68px] flex-shrink-0 flex-col items-center justify-center gap-0.5 border-r border-neutral-100 bg-neutral-50 py-4 transition-colors hover:bg-neutral-100"
-      >
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
-          {month}
-        </span>
-        <span className="text-3xl font-bold leading-none text-neutral-900">
-          {day}
-        </span>
-        <span className="text-[11px] text-neutral-400">{dayName}</span>
-      </button>
+        {/* Big time overlay */}
+        <div className="absolute bottom-3 left-4 right-20">
+          <p className="text-4xl font-black text-white leading-none tracking-tight drop-shadow-sm">
+            {time || '—'}
+          </p>
+          {formattedDate && (
+            <p className="mt-1 text-xs font-medium text-white/70 capitalize">{formattedDate}</p>
+          )}
+        </div>
 
-      {/* ── Contenido ── */}
-      <div className="flex flex-1 flex-col gap-2 p-4">
-
-        {/* Nombre + badge (clicable) */}
-        <button
-          type="button"
-          onClick={goToDetail}
-          className="flex items-start justify-between gap-2 text-left"
-        >
-          <div className="min-w-0">
-            <h3 className="truncate text-sm font-semibold text-neutral-900 hover:underline">
-              {businessName}
-            </h3>
-            {businessCategory && (
-              <span className="text-xs text-neutral-400">{businessCategory}</span>
-            )}
-          </div>
+        {/* Status badge */}
+        <div className="absolute top-3 right-3">
           <ReservationStatusBadge status={status} />
-        </button>
+        </div>
 
-        {/* Servicio */}
+        {/* Small logo overlay (bottom right) */}
+        {businessLogoUrl && businessLogoUrl !== bannerSrc && (
+          <div className="absolute bottom-3 right-4">
+            <img
+              src={businessLogoUrl}
+              alt=""
+              className="h-9 w-9 rounded-xl object-cover border-2 border-white shadow-md"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <h3 className="font-bold text-[15px] text-neutral-900 line-clamp-1 leading-snug">
+            {businessName}
+          </h3>
+          {price !== null && (
+            <span className="flex-shrink-0 text-sm font-bold text-neutral-900">
+              ${Number(price).toLocaleString('es-MX')}
+            </span>
+          )}
+        </div>
+
         {serviceName && (
-          <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-            {SERVICE_ICON[businessType] ?? <ScissorsIcon />}
-            <span className="truncate">{serviceName}</span>
+          <p className="text-sm text-neutral-500 mb-2 line-clamp-1">
+            {serviceName}
+            {duration && <span className="text-neutral-400"> · ~{duration} min</span>}
+          </p>
+        )}
+
+        {businessAddress && (
+          <div className="flex items-center gap-1.5 text-xs text-neutral-400 mb-3">
+            <PinIcon />
+            <span className="line-clamp-1">{businessAddress}</span>
           </div>
         )}
 
-        {/* Hora · duración · precio */}
-        <div className="flex items-center gap-3 text-xs text-neutral-400">
-          {time && (
-            <span className="flex items-center gap-1">
-              <ClockIcon />
-              {time}
-            </span>
-          )}
-          {duration && <span>~{duration} min</span>}
-          {price !== null && (
-            <span className="ml-auto text-sm font-semibold text-neutral-700">
-              ${price}
-            </span>
-          )}
-        </div>
+        {!businessAddress && time && (
+          <div className="flex items-center gap-1.5 text-xs text-neutral-400 mb-3">
+            <ClockIcon />
+            <span>{time}{duration && ` · ~${duration} min`}</span>
+          </div>
+        )}
 
-        {/* Acciones */}
-        <div className="mt-auto flex items-center justify-between pt-1">
+        {canCancel && !confirming && (
           <button
             type="button"
-            onClick={goToDetail}
-            className="text-xs font-semibold text-neutral-400 transition-colors hover:text-neutral-700"
+            onClick={(e) => { e.stopPropagation(); setConfirming(true) }}
+            className="mt-1 w-full rounded-xl border border-red-100 py-2 text-xs font-semibold text-red-500 hover:bg-red-50 active:scale-[0.98] transition-all duration-150"
           >
-            Ver detalles →
+            Cancelar reserva
           </button>
-          {canCancel && (
-            <button
-              type="button"
-              onClick={() => onCancel?.(reservation)}
-              className="text-xs font-semibold text-red-500 transition-colors hover:text-red-700"
-            >
-              Cancelar
-            </button>
-          )}
-        </div>
+        )}
+
+        {confirming && (
+          <div
+            className="mt-2 rounded-2xl border border-red-100 bg-red-50 p-4 animate-slide-up"
+            onClick={e => e.stopPropagation()}
+          >
+            <p className="mb-1 text-center text-sm font-bold text-red-700">¿Cancelar reserva?</p>
+            <p className="mb-4 text-center text-xs text-red-500">
+              {businessName}{serviceName ? ` · ${serviceName}` : ''}
+              {formattedDate ? ` · ${time}` : ''}
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                className="flex-1 rounded-xl border border-neutral-200 bg-white py-2.5 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-50 active:scale-[0.98]"
+              >
+                No, regresar
+              </button>
+              <button
+                type="button"
+                onClick={() => onCancel?.(reservation)}
+                className="flex-1 rounded-xl bg-red-500 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-red-600 active:scale-[0.98]"
+              >
+                Sí, cancelar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </article>
   )
