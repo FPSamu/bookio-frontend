@@ -14,7 +14,6 @@ export default function BusinessGrid({
   businesses = [],
   loading = false,
   skeletonCount = 6,
-  onReserve,
   emptyMessage = 'No encontramos negocios con esos filtros.',
 }) {
   return (
@@ -30,7 +29,6 @@ export default function BusinessGrid({
           <BusinessCard
             key={business.id}
             business={business}
-            onReserve={onReserve}
           />
         ))
       )}

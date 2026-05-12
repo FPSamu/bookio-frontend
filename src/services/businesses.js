@@ -2,11 +2,25 @@ import api from './api'
 
 let _businessCache = null
 
+const MX_TZ = 'America/Mexico_City'
+
+function isOpenNow(schedules) {
+  if (!schedules || schedules.length === 0) return false
+  const mxNow   = new Date(new Date().toLocaleString('en-US', { timeZone: MX_TZ }))
+  const todayDow = mxNow.getDay()
+  const curMin   = mxNow.getHours() * 60 + mxNow.getMinutes()
+  const entry    = schedules.find(s => s.day_of_week === todayDow)
+  if (!entry) return false
+  const [sH, sM] = (entry.start_time || '00:00').split(':').map(Number)
+  const [eH, eM] = (entry.end_time   || '00:00').split(':').map(Number)
+  return curMin >= sH * 60 + sM && curMin < eH * 60 + eM
+}
+
 const TYPE_MAP = {
   RESTAURANT: 'restaurant',
   SPA: 'spa',
   SALON: 'salon',
-  BARBERSHOP: 'salon',
+  BARBERSHOP: 'barbershop',
   MEDICAL: 'medical',
   OTHER: 'other',
 }
@@ -16,6 +30,7 @@ function toFrontendType(backendType = '') {
 }
 
 function transformBusiness(b) {
+  const photos = Array.isArray(b.photos) ? b.photos : []
   return {
     id: b.id,
     name: b.name,
@@ -23,13 +38,14 @@ function transformBusiness(b) {
     category: b.type ? b.type.charAt(0) + b.type.slice(1).toLowerCase() : '',
     rating: b.average_rating ?? 0,
     reviewCount: b.review_count ?? 0,
-    imageUrl: b.logo_url || null,
+    imageUrl: photos[0] || b.logo_url || null,
+    photos,
     location: b.address || '',
     lat: b.latitude  ?? null,
     lng: b.longitude ?? null,
     phone: b.phone   || null,
     tags: [],
-    isOpen: true,
+    isOpen: null,
   }
 }
 
@@ -93,11 +109,11 @@ export async function getBusinessReservations(date) {
 
 const FRONTEND_TO_BACKEND_TYPE = {
   restaurant: 'RESTAURANT',
-  spa: 'SPA',
-  salon: 'SALON',
-  medical: 'MEDICAL',
+  spa:        'SPA',
+  salon:      'SALON',
   barbershop: 'BARBERSHOP',
-  other: 'OTHER',
+  medical:    'MEDICAL',
+  other:      'OTHER',
 }
 
 export async function registerBusiness({ name, type, address }) {
@@ -112,6 +128,8 @@ export async function registerBusiness({ name, type, address }) {
 export async function getBusinessById(businessId) {
   const { data } = await api.get(`/businesses/${businessId}`)
   const b = data.business || data
+  const photos = Array.isArray(b.photos) ? b.photos : []
+  const schedules = Array.isArray(b.schedules) ? b.schedules : []
   return {
     id: b.id,
     name: b.name,
@@ -120,12 +138,15 @@ export async function getBusinessById(businessId) {
     category: b.type ? b.type.charAt(0) + b.type.slice(1).toLowerCase() : '',
     rating: b.average_rating ?? 0,
     reviewCount: b.review_count ?? 0,
-    imageUrl: b.logo_url || null,
-    photos: Array.isArray(b.photos) ? b.photos : [],
+    logoUrl: b.logo_url || null,
+    imageUrl: photos[0] || b.logo_url || null,
+    photos,
     location: b.address || '',
+    lat: b.latitude  ?? null,
+    lng: b.longitude ?? null,
     phone: b.phone || null,
     tags: [],
-    isOpen: true,
+    isOpen: schedules.length > 0 ? isOpenNow(schedules) : null,
   }
 }
 

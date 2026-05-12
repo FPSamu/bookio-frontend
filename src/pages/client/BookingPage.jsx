@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import ClientLayout from '../../layouts/ClientLayout'
 import CalendarGrid from '../../components/business/CalendarGrid'
@@ -61,28 +61,39 @@ function StepIndicator({ current }) {
 // ── Tarjeta de servicio ───────────────────────────────────────────────────────
 
 function ServiceCard({ service, selected, onSelect }) {
-  const { name, duration_minutes, price } = service
+  const { name, duration_minutes, price, photo_url } = service
   return (
     <button
       type="button"
       onClick={() => onSelect(service)}
       className={[
-        'w-full text-left rounded-xl border px-5 py-4 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900',
+        'w-full text-left overflow-hidden rounded-2xl border transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900',
         selected
-          ? 'border-neutral-900 bg-neutral-900 text-white shadow-md'
+          ? 'border-neutral-900 bg-neutral-900 text-white shadow-lg'
           : 'border-neutral-100 bg-white text-neutral-900 hover:border-neutral-300 shadow-[0_2px_8px_rgba(0,0,0,0.04)]',
       ].join(' ')}
     >
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex flex-col gap-0.5 min-w-0">
-          <span className="truncate text-sm font-semibold">{name}</span>
-          <span className={`text-xs ${selected ? 'text-neutral-300' : 'text-neutral-400'}`}>
-            ~{duration_minutes} min
+      <div className="flex items-center gap-0">
+        {photo_url && (
+          <div className="h-[72px] w-[72px] flex-shrink-0 overflow-hidden">
+            <img
+              src={photo_url}
+              alt={name}
+              className={`h-full w-full object-cover transition-opacity duration-200 ${selected ? 'opacity-80' : ''}`}
+            />
+          </div>
+        )}
+        <div className="flex flex-1 items-center justify-between gap-4 px-5 py-4">
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="truncate text-sm font-bold">{name}</span>
+            <span className={`text-xs ${selected ? 'text-neutral-300' : 'text-neutral-400'}`}>
+              ~{duration_minutes} min
+            </span>
+          </div>
+          <span className="flex-shrink-0 text-sm font-black">
+            ${Number(price).toLocaleString('es-MX', { minimumFractionDigits: 0 })}
           </span>
         </div>
-        <span className="flex-shrink-0 text-sm font-bold">
-          ${Number(price).toLocaleString('es-MX', { minimumFractionDigits: 0 })}
-        </span>
       </div>
     </button>
   )
@@ -124,6 +135,76 @@ function SlotGrid({ slots, selected, onSelect, loading }) {
           {slot}
         </button>
       ))}
+    </div>
+  )
+}
+
+// ── Pantalla de éxito ─────────────────────────────────────────────────────────
+
+function SuccessScreen({ business, service, dateStr, time, onDone }) {
+  const MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+  const parts = dateStr.split('-').map(Number)
+  const label = `${parts[2]} ${MONTHS[parts[1] - 1]} ${parts[0]}`
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white px-6 animate-fade-in">
+      <div className="mb-8">
+        <svg width="88" height="88" viewBox="0 0 88 88" fill="none">
+          <circle
+            cx="44" cy="44" r="38"
+            stroke="#10b981" strokeWidth="4"
+            className="animate-circle-grow"
+            style={{ transformOrigin: 'center' }}
+          />
+          <path
+            d="M28 44 L39 55 L60 32"
+            stroke="#10b981" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"
+            pathLength="100"
+            style={{ strokeDashoffset: 100 }}
+            className="animate-check-draw"
+          />
+        </svg>
+      </div>
+
+      <h1 className="text-2xl font-black text-neutral-900 mb-2 text-center animate-slide-up">
+        ¡Reserva confirmada!
+      </h1>
+      <p className="text-sm text-neutral-400 text-center mb-8 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+        Tu cita ha sido registrada exitosamente.
+      </p>
+
+      <div
+        className="w-full max-w-sm rounded-2xl border border-neutral-100 bg-neutral-50 p-5 animate-slide-up"
+        style={{ animationDelay: '0.18s' }}
+      >
+        <div className="flex flex-col gap-3 text-sm">
+          <div className="flex justify-between">
+            <span className="text-neutral-400">Negocio</span>
+            <span className="font-semibold text-neutral-900">{business.name}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-neutral-400">Servicio</span>
+            <span className="font-semibold text-neutral-900">{service.name}</span>
+          </div>
+          <div className="flex justify-between border-t border-neutral-100 pt-3">
+            <span className="text-neutral-400">Fecha</span>
+            <span className="font-semibold text-neutral-900 capitalize">{label}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-neutral-400">Hora</span>
+            <span className="text-xl font-black text-neutral-900">{time}</span>
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={onDone}
+        className="mt-8 w-full max-w-sm rounded-full bg-neutral-900 py-3.5 text-sm font-bold text-white hover:bg-neutral-700 active:scale-[0.98] transition-all animate-slide-up"
+        style={{ animationDelay: '0.28s' }}
+      >
+        Ver mis reservas
+      </button>
     </div>
   )
 }
@@ -205,8 +286,12 @@ export default function BookingPage() {
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [selectedTime, setSelectedTime] = useState(null)
 
-  const [booking,      setBooking]      = useState(false)
-  const [bookingError, setBookingError] = useState('')
+  const [booking,        setBooking]        = useState(false)
+  const [bookingError,   setBookingError]   = useState('')
+  const [bookingSuccess, setBookingSuccess] = useState(false)
+
+  const dateSectionRef = useRef(null)
+  const slotSectionRef = useRef(null)
 
   // Paso actual para el indicador
   const step = !selectedService ? 1 : !selectedDate ? 2 : 3
@@ -263,6 +348,9 @@ export default function BookingPage() {
     setSelectedDate(null)
     setSelectedTime(null)
     setSlots([])
+    setTimeout(() => {
+      dateSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
   }, [])
 
   const handleDateSelect = useCallback((date) => {
@@ -273,6 +361,9 @@ export default function BookingPage() {
     if (closedDows.has(date.getDay())) return
     setSelectedDate(date)
     setSelectedTime(null)
+    setTimeout(() => {
+      slotSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
   }, [blockedDates, closedDows])
 
   const handleMonthChange = useCallback((delta) => {
@@ -291,7 +382,7 @@ export default function BookingPage() {
         dateStr:   toKey(selectedDate),
         time:      selectedTime,
       })
-      navigate('/reservations')
+      setBookingSuccess(true)
     } catch (err) {
       setBookingError(
         err?.response?.status === 409
@@ -321,6 +412,18 @@ export default function BookingPage() {
   }
 
   if (!business) return null
+
+  if (bookingSuccess) {
+    return (
+      <SuccessScreen
+        business={business}
+        service={selectedService}
+        dateStr={toKey(selectedDate)}
+        time={selectedTime}
+        onDone={() => navigate('/reservations')}
+      />
+    )
+  }
 
   return (
     <ClientLayout>
@@ -370,7 +473,7 @@ export default function BookingPage() {
 
           {/* ── Paso 2: Seleccionar fecha ─────────────────────────────── */}
           {selectedService && (
-            <section>
+            <section ref={dateSectionRef}>
               <h2 className="mb-3 text-base font-semibold text-neutral-900">
                 2. Elige una fecha
               </h2>
@@ -388,7 +491,7 @@ export default function BookingPage() {
 
           {/* ── Paso 3: Seleccionar horario ───────────────────────────── */}
           {selectedDate && (
-            <section>
+            <section ref={slotSectionRef}>
               <h2 className="mb-3 text-base font-semibold text-neutral-900">
                 3. Elige un horario
               </h2>
