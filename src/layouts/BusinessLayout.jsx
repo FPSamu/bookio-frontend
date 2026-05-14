@@ -219,14 +219,14 @@ function Navbar() {
 function BottomNav() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-neutral-100 bg-white/95 backdrop-blur-md md:hidden">
-      <div className="flex h-16 items-center justify-around px-2">
+      <div className="flex h-16 items-center px-1">
         {NAV_LINKS.map(({ to, label, icon }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
               [
-                'flex flex-col items-center gap-0.5 rounded-xl px-4 py-1.5 text-xs font-medium transition-colors duration-150',
+                'flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[10px] font-medium transition-colors duration-150 min-w-0',
                 isActive
                   ? 'text-neutral-900'
                   : 'text-neutral-400 hover:text-neutral-600',
@@ -234,7 +234,7 @@ function BottomNav() {
             }
           >
             {icon}
-            {label}
+            <span className="truncate w-full text-center leading-tight">{label}</span>
           </NavLink>
         ))}
       </div>

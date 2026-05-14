@@ -806,7 +806,7 @@ export default function BusinessDetailPage() {
       </div>
 
       {/* ── Sticky CTA ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-neutral-100 bg-white/95 backdrop-blur-md px-5 py-4 sm:px-8">
+      <div className="fixed bottom-16 left-0 right-0 z-20 border-t border-neutral-100 bg-white/95 backdrop-blur-md px-5 py-4 sm:px-8 md:bottom-0">
         <div className="mx-auto max-w-2xl">
           <button
             type="button"
