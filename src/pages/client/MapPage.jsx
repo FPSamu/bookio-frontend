@@ -227,7 +227,7 @@ export default function MapPage() {
 
       <div
         className="relative overflow-hidden rounded-2xl border border-neutral-200 shadow-sm"
-        style={{ height: '66vh', minHeight: 420 }}
+        style={{ height: '66vh', minHeight: 420, isolation: 'isolate' }}
       >
         <MapContainer
           center={DEFAULT_CENTER}

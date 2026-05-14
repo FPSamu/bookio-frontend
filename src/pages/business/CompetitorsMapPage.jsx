@@ -347,7 +347,7 @@ export default function CompetitorsMapPage() {
         {/* Map — full height on mobile */}
         <div
           className="overflow-hidden rounded-2xl border border-neutral-100 shadow-sm lg:flex-1"
-          style={{ height: 'calc(100svh - 260px)', minHeight: 320 }}
+          style={{ height: 'calc(100svh - 260px)', minHeight: 320, isolation: 'isolate' }}
         >
           {loading ? (
             <div className="flex h-full items-center justify-center bg-neutral-50">
