@@ -49,8 +49,12 @@ export default function ReservationsPage() {
           )
         }
 
-        // Sort newest → oldest
-        const sorted = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date))
+        const sorted = [...filtered].sort((a, b) => {
+          const da = new Date(a.date).getTime()
+          const db = new Date(b.date).getTime()
+          // Upcoming: soonest first — Past/Cancelled: most recent first
+          return activeTab === 'upcoming' ? da - db : db - da
+        })
         setReservations(sorted)
       } catch (err) {
         console.error('Error cargando reservas:', err)
