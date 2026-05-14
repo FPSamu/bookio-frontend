@@ -163,8 +163,7 @@ export default function FavoriteCard({ business, onReserve, onRemove }) {
           <button
             type="button"
             onClick={() => onReserve?.(business)}
-            disabled={!isOpen}
-            className="w-full rounded-full bg-neutral-900 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+            className="w-full rounded-full bg-neutral-900 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-700 active:scale-[0.98]"
           >
             Reservar
           </button>

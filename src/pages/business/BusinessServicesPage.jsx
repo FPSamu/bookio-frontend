@@ -344,9 +344,10 @@ function ServiceCard({ service, onUpdated, onDeleted }) {
   const { id, name, duration_minutes, price, photos = [], photo_url } = service
   const firstPhoto = photos[0] || photo_url || null
 
-  const [expanded,  setExpanded]  = useState(false)
-  const [editing,   setEditing]   = useState(false)
-  const [deleting,  setDeleting]  = useState(false)
+  const [expanded,          setExpanded]          = useState(false)
+  const [editing,           setEditing]           = useState(false)
+  const [deleting,          setDeleting]          = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // Edit form state
   const [editName,     setEditName]     = useState(name)
@@ -355,28 +356,28 @@ function ServiceCard({ service, onUpdated, onDeleted }) {
   const [editSaving,   setEditSaving]   = useState(false)
   const [editError,    setEditError]    = useState('')
 
-  // Photo grid state for edit panel
-  const [editPreviews, setEditPreviews] = useState(() => pad4(photos))
-  const [editFiles,    setEditFiles]    = useState([null, null, null, null])
-  const editRefs = [useRef(null), useRef(null), useRef(null), useRef(null)]
+  // Photo state for edit panel
+  const [editPreview, setEditPreview] = useState(firstPhoto)
+  const [editFile,    setEditFile]    = useState(null)
+  const editRef = useRef(null)
 
   function openEdit() {
-    setEditPreviews(pad4(service.photos))
-    setEditFiles([null, null, null, null])
+    setEditPreview(service.photo_url || service.photos?.[0] || null)
+    setEditFile(null)
     setEditing(true)
     setExpanded(false)
   }
 
-  function handleEditPhotoChange(i, e) {
+  function handleEditPhotoChange(e) {
     const file = e.target.files?.[0]
     if (!file) return
-    setEditFiles((prev)    => { const n = [...prev];    n[i] = file;                       return n })
-    setEditPreviews((prev) => { const n = [...prev];    n[i] = URL.createObjectURL(file);  return n })
+    setEditFile(file)
+    setEditPreview(URL.createObjectURL(file))
   }
 
-  function removeEditPhoto(i) {
-    setEditFiles((prev)    => { const n = [...prev]; n[i] = null; return n })
-    setEditPreviews((prev) => { const n = [...prev]; n[i] = null; return n })
+  function removeEditPhoto() {
+    setEditFile(null)
+    setEditPreview(null)
   }
 
   async function handleEditSave() {
@@ -390,24 +391,21 @@ function ServiceCard({ service, onUpdated, onDeleted }) {
         price: Number(editPrice),
       })
 
-      // Build final photos array: upload new files, keep existing URLs, drop nulls
-      const finalPhotos = []
-      for (let i = 0; i < 4; i++) {
-        if (editFiles[i]) {
-          const url = await uploadServicePhoto(id, editFiles[i])
-          finalPhotos.push(url)
-        } else if (editPreviews[i]) {
-          finalPhotos.push(editPreviews[i])
-        }
+      let finalPhotoUrl = service.photo_url || service.photos?.[0] || null
+      if (editFile) {
+        finalPhotoUrl = await uploadServicePhoto(id, editFile)
+      } else if (!editPreview) {
+        finalPhotoUrl = null
       }
+
       onUpdated({
         ...service,
         ...updated,
         name: editName.trim(),
         duration_minutes: Number(editDuration),
         price: Number(editPrice),
-        photos: finalPhotos,
-        photo_url: finalPhotos[0] ?? null,
+        photos: finalPhotoUrl ? [finalPhotoUrl] : [],
+        photo_url: finalPhotoUrl,
       })
       setEditing(false)
     } catch (err) {
@@ -418,6 +416,7 @@ function ServiceCard({ service, onUpdated, onDeleted }) {
   }
 
   async function handleDelete() {
+    setShowDeleteConfirm(false)
     setDeleting(true)
     try {
       await deleteService(id)
@@ -480,7 +479,7 @@ function ServiceCard({ service, onUpdated, onDeleted }) {
           </button>
           <button
             type="button"
-            onClick={handleDelete}
+            onClick={() => setShowDeleteConfirm(true)}
             disabled={deleting}
             title="Eliminar"
             className="rounded-lg p-1.5 text-neutral-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-40"
@@ -501,57 +500,98 @@ function ServiceCard({ service, onUpdated, onDeleted }) {
         </div>
       </div>
 
+      {/* ── Modal de confirmación de eliminación ── */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl overflow-hidden">
+            {/* Cabecera con ícono */}
+            <div className="flex flex-col items-center gap-3 bg-red-50 px-6 pt-7 pb-5">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+                  className="text-red-500">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" /><path d="M14 11v6" />
+                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                </svg>
+              </div>
+              <p className="text-base font-bold text-neutral-900">¿Eliminar servicio?</p>
+            </div>
+            {/* Cuerpo */}
+            <div className="px-6 py-5">
+              <p className="text-sm text-neutral-500 text-center leading-relaxed">
+                Estás a punto de eliminar
+                <span className="font-semibold text-neutral-800"> &ldquo;{name}&rdquo;</span>.
+                <br />Esta acción no se puede deshacer.
+              </p>
+              <div className="mt-5 flex gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 rounded-xl border border-neutral-200 py-3 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 active:scale-[0.98]"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="flex-1 rounded-xl bg-red-500 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-600 active:scale-[0.98]"
+                >
+                  Sí, eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Editor inline */}
       {editing && (
         <div className="border-t border-neutral-100 px-4 pb-4 pt-3 flex flex-col gap-3">
           <p className="text-xs font-semibold text-neutral-700">Editar servicio</p>
           {editError && <p className="text-xs text-red-500">{editError}</p>}
 
-          {/* Cuadrícula de 4 fotos */}
+          {/* Foto del servicio */}
           <div className="flex flex-col gap-1.5">
-            <p className="text-xs font-medium text-neutral-500">Fotos <span className="font-normal text-neutral-400">(máx. 4)</span></p>
-            <div className="grid grid-cols-4 gap-2">
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="relative aspect-square">
-                  <button
-                    type="button"
-                    onClick={() => editRefs[i].current?.click()}
-                    className="h-full w-full overflow-hidden rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-100 transition-colors hover:border-neutral-400 hover:bg-neutral-50"
-                  >
-                    {editPreviews[i] ? (
-                      <img src={editPreviews[i]} alt={`foto ${i + 1}`} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-neutral-300">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-                          fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" />
-                          <polyline points="21 15 16 10 5 21" />
-                        </svg>
-                        <span className="text-[9px] font-medium">{i + 1}</span>
-                      </div>
-                    )}
-                  </button>
-                  {editPreviews[i] && (
-                    <button
-                      type="button"
-                      onClick={() => removeEditPhoto(i)}
-                      className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-neutral-900 text-white hover:bg-red-500"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24"
-                        fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                    </button>
-                  )}
-                  <input
-                    ref={editRefs[i]}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => handleEditPhotoChange(i, e)}
-                  />
-                </div>
-              ))}
+            <p className="text-xs font-medium text-neutral-500">Foto <span className="font-normal text-neutral-400">(opcional)</span></p>
+            <div className="relative aspect-square w-32">
+              <button
+                type="button"
+                onClick={() => editRef.current?.click()}
+                className="h-full w-full overflow-hidden rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-100 transition-colors hover:border-neutral-400 hover:bg-neutral-50"
+              >
+                {editPreview ? (
+                  <img src={editPreview} alt="foto" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-neutral-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                      fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" />
+                      <polyline points="21 15 16 10 5 21" />
+                    </svg>
+                  </div>
+                )}
+              </button>
+              {editPreview && (
+                <button
+                  type="button"
+                  onClick={removeEditPhoto}
+                  className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-neutral-900 text-white hover:bg-red-500 shadow"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              )}
+              <input
+                ref={editRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleEditPhotoChange}
+              />
             </div>
           </div>
 
@@ -586,20 +626,20 @@ function ServiceForm({ businessType, onCreated, onCancel }) {
   const [errors,        setErrors]        = useState({})
   const [loading,       setLoading]       = useState(false)
   const [apiError,      setApiError]      = useState('')
-  const [photoFiles,    setPhotoFiles]    = useState([null, null, null, null])
-  const [photoPreviews, setPhotoPreviews] = useState([null, null, null, null])
-  const photoInputRefs  = [useRef(null), useRef(null), useRef(null), useRef(null)]
+  const [photoFile,    setPhotoFile]    = useState(null)
+  const [photoPreview, setPhotoPreview] = useState(null)
+  const photoInputRef  = useRef(null)
 
-  function handlePhotoChange(index, e) {
+  function handlePhotoChange(e) {
     const file = e.target.files?.[0]
     if (!file) return
-    setPhotoFiles((prev) => { const next = [...prev]; next[index] = file; return next })
-    setPhotoPreviews((prev) => { const next = [...prev]; next[index] = URL.createObjectURL(file); return next })
+    setPhotoFile(file)
+    setPhotoPreview(URL.createObjectURL(file))
   }
 
-  function removePhoto(index) {
-    setPhotoFiles((prev) => { const next = [...prev]; next[index] = null; return next })
-    setPhotoPreviews((prev) => { const next = [...prev]; next[index] = null; return next })
+  function removePhoto() {
+    setPhotoFile(null)
+    setPhotoPreview(null)
   }
 
   const setField = (field) => (e) => {
@@ -631,11 +671,10 @@ function ServiceForm({ businessType, onCreated, onCancel }) {
         durationMinutes: Number(form.duration),
         price:           Number(form.price),
       })
-      const selectedFiles = photoFiles.filter(Boolean)
-      if (selectedFiles.length > 0) {
+      if (photoFile) {
         try {
-          const photos = await uploadServicePhotos(service.id, selectedFiles)
-          service = { ...service, photos, photo_url: photos[0] ?? null }
+          const url = await uploadServicePhoto(service.id, photoFile)
+          service = { ...service, photos: [url], photo_url: url }
         } catch {
           // fotos opcionales — no bloquea si falla
         }
@@ -660,51 +699,46 @@ function ServiceForm({ businessType, onCreated, onCancel }) {
         <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{apiError}</p>
       )}
 
-      {/* Fotos del servicio (hasta 4) */}
+      {/* Foto del servicio */}
       <div className="flex flex-col gap-2">
-        <p className="text-xs font-medium text-neutral-500">Fotos del servicio <span className="font-normal text-neutral-400">(opcional, máx. 4)</span></p>
-        <div className="grid grid-cols-4 gap-2">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="relative aspect-square">
-              <button
-                type="button"
-                onClick={() => photoInputRefs[i].current?.click()}
-                className="h-full w-full overflow-hidden rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-100 transition-colors hover:border-neutral-400 hover:bg-neutral-50"
-              >
-                {photoPreviews[i] ? (
-                  <img src={photoPreviews[i]} alt={`foto ${i + 1}`} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-neutral-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-                      fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" />
-                      <polyline points="21 15 16 10 5 21" />
-                    </svg>
-                    <span className="text-[9px] font-medium">{i + 1}</span>
-                  </div>
-                )}
-              </button>
-              {photoPreviews[i] && (
-                <button
-                  type="button"
-                  onClick={() => removePhoto(i)}
-                  className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-neutral-900 text-white hover:bg-red-500"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24"
-                    fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              )}
-              <input
-                ref={photoInputRefs[i]}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => handlePhotoChange(i, e)}
-              />
-            </div>
-          ))}
+        <p className="text-xs font-medium text-neutral-500">Foto del servicio <span className="font-normal text-neutral-400">(opcional)</span></p>
+        <div className="relative aspect-square w-32">
+          <button
+            type="button"
+            onClick={() => photoInputRef.current?.click()}
+            className="h-full w-full overflow-hidden rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-100 transition-colors hover:border-neutral-400 hover:bg-neutral-50"
+          >
+            {photoPreview ? (
+              <img src={photoPreview} alt="foto" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-neutral-300">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+              </div>
+            )}
+          </button>
+          {photoPreview && (
+            <button
+              type="button"
+              onClick={removePhoto}
+              className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-neutral-900 text-white hover:bg-red-500 shadow"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          )}
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handlePhotoChange}
+          />
         </div>
       </div>
 

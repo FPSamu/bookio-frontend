@@ -14,25 +14,27 @@ function transformAppointment(a) {
   const time = `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`
   return {
     id: a.id,
-    businessId:       a.business?.id         || null,
-    businessName:     a.business?.name        || '',
-    businessType:     TYPE_MAP[a.business?.type] || 'other',
-    businessCategory: a.business?.type
+    businessId:        a.business?.id          || null,
+    businessName:      a.business?.name         || '',
+    businessType:      TYPE_MAP[a.business?.type] || 'other',
+    businessCategory:  a.business?.type
       ? a.business.type.charAt(0) + a.business.type.slice(1).toLowerCase()
       : '',
-    businessLogoUrl:  a.business?.logo_url    || null,
-    businessImageUrl: (Array.isArray(a.business?.photos) ? a.business.photos[0] : null) || a.business?.logo_url || null,
-    businessPhone:    a.business?.phone        || null,
-    businessAddress:  a.business?.address      || null,
-    serviceName:      a.service?.name          || '',
-    serviceId:        a.service?.id            || null,
-    date:             a.start_datetime,
+    businessLogoUrl:   a.business?.logo_url     || null,
+    businessImageUrl:  (Array.isArray(a.business?.photos) ? a.business.photos[0] : null) || a.business?.logo_url || null,
+    businessPhone:     a.business?.phone         || null,
+    businessAddress:   a.business?.address       || null,
+    businessLatitude:  a.business?.latitude  != null ? Number(a.business.latitude)  : null,
+    businessLongitude: a.business?.longitude != null ? Number(a.business.longitude) : null,
+    serviceName:       a.service?.name           || '',
+    serviceId:         a.service?.id             || null,
+    date:              a.start_datetime,
     time,
-    status:           a.status.toLowerCase(),
-    price:            a.service?.price != null ? Number(a.service.price) : null,
-    duration:         a.service?.duration_minutes || null,
-    rating:           a.rating    ?? null,
-    reviewText:       a.review_text ?? a.reviewText ?? null,
+    status:            a.status.toLowerCase(),
+    price:             a.service?.price != null ? Number(a.service.price) : null,
+    duration:          a.service?.duration_minutes || null,
+    rating:            a.rating     ?? null,
+    reviewText:        a.review_text ?? a.reviewText ?? null,
   }
 }
 

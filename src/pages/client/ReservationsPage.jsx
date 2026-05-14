@@ -5,12 +5,13 @@ import ReservationTabFilter from '../../components/reservations/ReservationTabFi
 import SectionTitle from '../../components/ui/SectionTitle'
 import { useAuth } from '../../context/AuthContext'
 import { getAppointments, cancelAppointment } from '../../services/appointments'
+import { getMyReviews } from '../../services/reviews'
 
 export default function ReservationsPage() {
   const { user } = useAuth()
-  const [activeTab,     setActiveTab]     = useState('upcoming')
-  const [reservations,  setReservations]  = useState([])
-  const [loading,       setLoading]       = useState(true)
+  const [activeTab,    setActiveTab]    = useState('upcoming')
+  const [reservations, setReservations] = useState([])
+  const [loading,      setLoading]      = useState(true)
 
   useEffect(() => {
     if (!user?.id) return
@@ -18,8 +19,39 @@ export default function ReservationsPage() {
     async function fetchReservations() {
       setLoading(true)
       try {
-        const data = await getAppointments({ status: activeTab, clientId: user.id })
-        if (!cancelled) setReservations(data)
+        // 'past' and 'upcoming' are frontend-only concepts — fetch all non-cancelled
+        // for those tabs and filter by date. Only 'cancelled' maps 1:1 to a backend status.
+        const apiStatus = activeTab === 'cancelled' ? 'cancelled' : undefined
+
+        const [data, reviews] = await Promise.all([
+          getAppointments({ status: apiStatus, clientId: user.id }),
+          activeTab === 'past' ? getMyReviews() : Promise.resolve([]),
+        ])
+        if (cancelled) return
+
+        const now = new Date()
+
+        // Filter by tab
+        let filtered = data
+        if (activeTab === 'past') {
+          filtered = data.filter(r => new Date(r.date) < now && r.status !== 'cancelled')
+        } else if (activeTab === 'upcoming') {
+          filtered = data.filter(r => new Date(r.date) >= now && r.status !== 'cancelled')
+        }
+
+        // Enrich past reservations with real rating from /reviews/mine
+        if (activeTab === 'past') {
+          const reviewedMap = new Map(
+            reviews.map(r => [r.appointment_id ?? r.appointmentId, r.score ?? r.rating ?? 1])
+          )
+          filtered = filtered.map(r =>
+            reviewedMap.has(r.id) ? { ...r, rating: reviewedMap.get(r.id) } : r
+          )
+        }
+
+        // Sort newest → oldest
+        const sorted = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date))
+        setReservations(sorted)
       } catch (err) {
         console.error('Error cargando reservas:', err)
       } finally {

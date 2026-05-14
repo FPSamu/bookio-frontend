@@ -101,8 +101,7 @@ export default function BusinessCard({ business }) {
         <button
           type="button"
           onClick={handleReserve}
-          disabled={!isOpen}
-          className="mt-auto w-full rounded-xl bg-neutral-900 py-2.5 text-sm font-semibold text-white transition-all duration-150 hover:bg-neutral-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+          className="mt-auto w-full rounded-xl bg-neutral-900 py-2.5 text-sm font-semibold text-white transition-all duration-150 hover:bg-neutral-700 active:scale-[0.98]"
         >
           Reservar
         </button>

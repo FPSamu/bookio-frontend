@@ -12,6 +12,7 @@ import {
   getBusinessSchedule,
   getBusinessReviews,
 } from '../../services/businesses'
+import { getFavorites, addFavorite, removeFavorite } from '../../services/favorites'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const DAY_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
@@ -77,6 +78,8 @@ const ImagePlaceholder = () => (
     <polyline points="21 15 16 10 5 21"/>
   </Ico>
 )
+const HeartFilledIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+const HeartOutlineIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
 
 // ── Map icons (divIcon avoids Vite asset issues with default Leaflet icons) ───
 const ACCENT_COLORS = {
@@ -353,7 +356,7 @@ function PhotoGallery({ photos, name, gradient }) {
   } else if (count === 2) {
     /* ── 2 photos: equal halves ── */
     grid = (
-      <div className="grid grid-cols-2 gap-0.5 h-[320px]">
+      <div className="grid grid-cols-2 gap-0.5 h-[300px] sm:h-[320px] overflow-hidden">
         <PhotoCell url={shown[0]} alt={name}        onClick={() => open(0)} />
         <PhotoCell url={shown[1]} alt={`${name} 2`} onClick={() => open(1)} />
       </div>
@@ -361,9 +364,9 @@ function PhotoGallery({ photos, name, gradient }) {
   } else if (count === 3) {
     /* ── 3 photos: wide left + 2 stacked right ── */
     grid = (
-      <div className="grid gap-0.5 h-[380px]" style={{ gridTemplateColumns: '3fr 2fr' }}>
+      <div className="grid gap-0.5 h-[340px] sm:h-[380px] overflow-hidden" style={{ gridTemplateColumns: '3fr 2fr' }}>
         <PhotoCell url={shown[0]} alt={name} onClick={() => open(0)} />
-        <div className="grid grid-rows-2 gap-0.5">
+        <div className="grid grid-rows-2 gap-0.5 h-full overflow-hidden">
           <PhotoCell url={shown[1]} alt={`${name} 2`} onClick={() => open(1)} />
           <PhotoCell url={shown[2]} alt={`${name} 3`} onClick={() => open(2)} />
         </div>
@@ -373,9 +376,9 @@ function PhotoGallery({ photos, name, gradient }) {
     /* ── 4 photos: wide left + 3 stacked right (Airbnb style) ── */
     const extraLabel = photos.length > 4 ? `+${photos.length - 4}` : null
     grid = (
-      <div className="grid gap-0.5 h-[400px]" style={{ gridTemplateColumns: '3fr 2fr' }}>
+      <div className="grid gap-0.5 h-[360px] sm:h-[400px] overflow-hidden" style={{ gridTemplateColumns: '3fr 2fr' }}>
         <PhotoCell url={shown[0]} alt={name} onClick={() => open(0)} />
-        <div className="grid grid-rows-3 gap-0.5">
+        <div className="grid grid-rows-3 gap-0.5 h-full overflow-hidden">
           <PhotoCell url={shown[1]} alt={`${name} 2`} onClick={() => open(1)} />
           <PhotoCell url={shown[2]} alt={`${name} 3`} onClick={() => open(2)} />
           <PhotoCell
@@ -529,6 +532,10 @@ export default function BusinessDetailPage() {
   const [loadingSch, setLoadingSch] = useState(true)
   const [loadingRev, setLoadingRev] = useState(true)
 
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [favoriteId, setFavoriteId] = useState(null)
+  const [togglingFav, setTogglingFav] = useState(false)
+
   useEffect(() => {
     let cancelled = false
     const safe = (set, done) => async (fn) => {
@@ -541,11 +548,42 @@ export default function BusinessDetailPage() {
       catch (_) {}
       finally { if (!cancelled) setLoadingBiz(false) }
     })()
+    ;(async () => {
+      try {
+        const favs = await getFavorites()
+        if (cancelled) return
+        const fav = favs.find(f => String(f.id) === String(businessId))
+        if (fav) {
+          setIsFavorite(true)
+          setFavoriteId(fav.favoriteId)
+        }
+      } catch (_) {}
+    })()
     safe(setServices, setLoadingSvc)(() => getBusinessServices(businessId))
     safe(setSchedule, setLoadingSch)(() => getBusinessSchedule(businessId))
     safe(setReviews,  setLoadingRev)(() => getBusinessReviews(businessId))
     return () => { cancelled = true }
   }, [businessId])
+
+  const handleToggleFavorite = async () => {
+    if (togglingFav) return
+    setTogglingFav(true)
+    try {
+      if (isFavorite && favoriteId) {
+        await removeFavorite(favoriteId)
+        setIsFavorite(false)
+        setFavoriteId(null)
+      } else {
+        const res = await addFavorite(businessId)
+        setIsFavorite(true)
+        setFavoriteId(res?.favorite?.id || res?.id || null)
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+    } finally {
+      setTogglingFav(false)
+    }
+  }
 
   if (loadingBiz) {
     return (
@@ -587,17 +625,27 @@ export default function BusinessDetailPage() {
   return (
     <ClientLayout>
 
-      {/* ── Back ── */}
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        className="mb-5 flex items-center gap-1.5 text-sm font-medium text-neutral-400 transition-colors hover:text-neutral-900"
-      >
-        <BackIcon /> Volver
-      </button>
+      {/* ── Top Bar ── */}
+      <div className="mb-5 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1.5 text-sm font-medium text-neutral-400 transition-colors hover:text-neutral-900"
+        >
+          <BackIcon /> Volver
+        </button>
+        <button
+          type="button"
+          onClick={handleToggleFavorite}
+          disabled={togglingFav}
+          className={`flex items-center justify-center h-10 w-10 rounded-full shadow-sm transition-all active:scale-[0.95] ${isFavorite ? 'bg-rose-50 text-rose-500 hover:bg-rose-100' : 'bg-white text-neutral-400 hover:text-rose-500'}`}
+        >
+          {isFavorite ? <HeartFilledIcon /> : <HeartOutlineIcon />}
+        </button>
+      </div>
 
       {/* ── Gallery ── */}
-      <div className="mb-8 -mx-5 sm:-mx-8">
+      <div className="mb-8 -mx-5 sm:-mx-8 overflow-hidden">
         <PhotoGallery
           photos={business.photos}
           name={business.name}

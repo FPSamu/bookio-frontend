@@ -4,26 +4,10 @@ import InputField from '../ui/InputField'
 import PasswordInput from '../ui/PasswordInput'
 import Button from '../ui/Button'
 import { useAuth } from '../../context/AuthContext'
-import { registerBusiness } from '../../services/businesses'
-
-const BUSINESS_TYPES = [
-  { value: 'restaurant', label: 'Restaurante' },
-  { value: 'spa',        label: 'Spa' },
-  { value: 'medical',    label: 'Médico' },
-  { value: 'salon',      label: 'Salón' },
-]
-
-const BUSINESS_NAME_PLACEHOLDER = {
-  restaurant: 'El Origen',
-  spa:        'Zen Garden Spa',
-  medical:    'Clínica Salud Integral',
-  salon:      'Studio 54 Hair',
-}
 
 function validate(form) {
   const errors = {}
 
-  if (!form.businessName.trim()) errors.businessName = 'El nombre del negocio es requerido.'
   if (!form.contactName.trim())  errors.contactName  = 'El nombre de contacto es requerido.'
 
   if (!form.email) {
@@ -58,9 +42,6 @@ export default function BusinessSignupForm() {
   const navigate = useNavigate()
 
   const [form, setForm] = useState({
-    businessType: 'restaurant',
-    businessName: '',
-    address:      '',
     contactName:  '',
     email:        '',
     phone:        '',
@@ -73,11 +54,6 @@ export default function BusinessSignupForm() {
 
   const set = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
-
-  const handleTypeChange = (type) => {
-    setForm((prev) => ({ ...prev, businessType: type, businessName: '' }))
-    setErrors((prev) => ({ ...prev, businessName: undefined }))
-  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -97,12 +73,8 @@ export default function BusinessSignupForm() {
         name:     form.contactName,
         phone:    form.phone,
       })
-      await registerBusiness({
-        name:    form.businessName,
-        type:    form.businessType,
-        address: form.address || undefined,
-      })
-      navigate('/business/dashboard')
+      // Account created! Now proceed to business setup.
+      navigate('/business/setup')
     } catch (err) {
       setApiError(resolveFirebaseError(err))
     } finally {
@@ -112,58 +84,15 @@ export default function BusinessSignupForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+      <div className="mb-2">
+        <p className="text-sm text-neutral-500">
+          Primero crea tu cuenta personal para administrar tu negocio.
+        </p>
+      </div>
+
       {apiError && (
         <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{apiError}</p>
       )}
-
-      {/* Tipo de negocio */}
-      <div className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-neutral-700">Tipo de negocio</span>
-        <div className="flex flex-wrap gap-2">
-          {BUSINESS_TYPES.map((t) => {
-            const isActive = form.businessType === t.value
-            return (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => handleTypeChange(t.value)}
-                aria-pressed={isActive}
-                className={[
-                  'rounded-full border px-3.5 py-1.5 text-xs font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-1',
-                  isActive
-                    ? 'border-neutral-900 bg-neutral-900 text-white'
-                    : 'border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400 hover:text-neutral-900',
-                ].join(' ')}
-              >
-                {t.label}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      <InputField
-        id="business-name"
-        label="Nombre del negocio"
-        type="text"
-        placeholder={BUSINESS_NAME_PLACEHOLDER[form.businessType]}
-        value={form.businessName}
-        onChange={set('businessName')}
-        error={errors.businessName}
-        autoComplete="organization"
-        required
-      />
-
-      <InputField
-        id="business-address"
-        label="Dirección"
-        type="text"
-        placeholder="Av. Presidente Masaryk 61, Polanco, CDMX"
-        value={form.address}
-        onChange={set('address')}
-        error={errors.address}
-        autoComplete="street-address"
-      />
 
       <InputField
         id="business-contact"
@@ -224,8 +153,8 @@ export default function BusinessSignupForm() {
         required
       />
 
-      <Button type="submit" fullWidth disabled={loading} className="mt-1">
-        {loading ? 'Creando cuenta...' : 'Registrar negocio'}
+      <Button type="submit" fullWidth disabled={loading} className="mt-2 py-3 text-base">
+        {loading ? 'Creando cuenta...' : 'Continuar al negocio'}
       </Button>
     </form>
   )

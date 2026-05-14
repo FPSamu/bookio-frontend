@@ -16,6 +16,7 @@ import EditBusinessPage from '../pages/business/EditBusinessPage'
 import ManualAppointmentPage from '../pages/business/ManualAppointmentPage'
 import BusinessQRPage from '../pages/business/BusinessQRPage'
 import QRScannerPage from '../pages/business/QRScannerPage'
+import CompetitorsMapPage from '../pages/business/CompetitorsMapPage'
 import ProfilePage from '../pages/client/ProfilePage'
 import MapPage from '../pages/client/MapPage'
 import SettingsPage from '../pages/shared/SettingsPage'
@@ -43,8 +44,6 @@ const router = createBrowserRouter([
       { path: '/reservations',                element: <ReservationsPage /> },
       { path: '/reservations/:reservationId', element: <AppointmentDetailPage /> },
       { path: '/favorites',          element: <FavoritesPage /> },
-      { path: '/business/:businessId', element: <BusinessDetailPage /> },
-      { path: '/booking/:businessId',  element: <BookingPage /> },
       { path: '/map',                  element: <MapPage /> },
       { path: '/profile',              element: <ProfilePage /> },
     ],
@@ -63,6 +62,7 @@ const router = createBrowserRouter([
       { path: '/business/appointments/manual',  element: <ManualAppointmentPage />    },
       { path: '/business/qr',                   element: <BusinessQRPage />           },
       { path: '/business/scanner',              element: <QRScannerPage />            },
+      { path: '/business/competitors',           element: <CompetitorsMapPage />        },
     ],
   },
 
@@ -70,6 +70,8 @@ const router = createBrowserRouter([
   {
     element: <ProtectedRoute />,
     children: [
+      { path: '/business/:businessId', element: <BusinessDetailPage /> },
+      { path: '/booking/:businessId',  element: <BookingPage /> },
       { path: '/settings',       element: <SettingsPage /> },
       { path: '/help',           element: <HelpCenterPage /> },
       { path: '/privacy-policy', element: <PrivacyPolicyPage /> },

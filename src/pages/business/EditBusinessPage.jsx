@@ -1,9 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import BusinessLayout from '../../layouts/BusinessLayout'
 import InputField from '../../components/ui/InputField'
 import Button from '../../components/ui/Button'
 import { getMyBusiness, updateBusiness, uploadBusinessLogo, uploadBusinessPhotos } from '../../services/businesses'
+
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const BUSINESS_TYPES = [
   { value: 'restaurant', label: 'Restaurante' },
@@ -18,6 +23,57 @@ const BACKEND_TO_FRONTEND = {
   RESTAURANT: 'restaurant', SPA: 'spa', SALON: 'salon',
   BARBERSHOP: 'barbershop', MEDICAL: 'medical', OTHER: 'other',
 }
+
+// ── Map pin icon (divIcon avoids Vite asset issues with default Leaflet icons) ─
+
+const PIN_ICON = L.divIcon({
+  className: '',
+  html: `<svg width="32" height="42" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M16 0C7.163 0 0 7.163 0 16C0 27 16 42 16 42C16 42 32 27 32 16C32 7.163 24.837 0 16 0Z" fill="#171717"/>
+    <circle cx="16" cy="16" r="6" fill="white"/>
+  </svg>`,
+  iconSize: [32, 42],
+  iconAnchor: [16, 42],
+  popupAnchor: [0, -44],
+})
+
+// ── Map sub-components ────────────────────────────────────────────────────────
+
+/** Listens for map clicks and renders a draggable marker */
+function LocationPicker({ position, onPositionChange }) {
+  useMapEvents({
+    click(e) {
+      onPositionChange([e.latlng.lat, e.latlng.lng])
+    },
+  })
+
+  if (!position) return null
+
+  return (
+    <Marker
+      position={position}
+      icon={PIN_ICON}
+      draggable
+      eventHandlers={{
+        dragend(e) {
+          const { lat, lng } = e.target.getLatLng()
+          onPositionChange([lat, lng])
+        },
+      }}
+    />
+  )
+}
+
+/** Centers the map on the initial position once on mount */
+function MapCenterController({ position }) {
+  const map = useMapEvents({})
+  useEffect(() => {
+    if (position) map.setView(position, map.getZoom(), { animate: true })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  return null
+}
+
+// ── Photo sub-components ──────────────────────────────────────────────────────
 
 function PhotoPreview({ src, onRemove }) {
   return (
@@ -53,15 +109,17 @@ function AddPhotoButton({ onClick }) {
   )
 }
 
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function EditBusinessPage() {
   const navigate = useNavigate()
   const logoInputRef   = useRef(null)
   const photosInputRef = useRef(null)
 
-  const [loading,    setLoading]    = useState(true)
-  const [saving,     setSaving]     = useState(false)
-  const [error,      setError]      = useState('')
-  const [success,    setSuccess]    = useState(false)
+  const [loading,  setLoading]  = useState(true)
+  const [saving,   setSaving]   = useState(false)
+  const [error,    setError]    = useState('')
+  const [success,  setSuccess]  = useState(false)
 
   // Form fields
   const [name,    setName]    = useState('')
@@ -69,15 +127,21 @@ export default function EditBusinessPage() {
   const [address, setAddress] = useState('')
   const [phone,   setPhone]   = useState('')
 
+  // Location  [lat, lng] | null
+  const [mapPosition, setMapPosition] = useState(null)
+  const [locating,    setLocating]    = useState(false)
+
   // Logo
   const [logoUrl,     setLogoUrl]     = useState(null)
   const [logoFile,    setLogoFile]    = useState(null)
   const [logoPreview, setLogoPreview] = useState(null)
 
   // Gallery photos
-  const [existingPhotos, setExistingPhotos] = useState([])  // URLs from server
-  const [newPhotoFiles,  setNewPhotoFiles]  = useState([])  // File objects
-  const [newPhotoPreviews, setNewPhotoPreviews] = useState([])  // blob: URLs
+  const [existingPhotos,   setExistingPhotos]   = useState([])
+  const [newPhotoFiles,    setNewPhotoFiles]     = useState([])
+  const [newPhotoPreviews, setNewPhotoPreviews]  = useState([])
+
+  // ── Load ──────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     let cancelled = false
@@ -91,6 +155,9 @@ export default function EditBusinessPage() {
         setPhone(biz.phone || '')
         setLogoUrl(biz.logo_url || null)
         setExistingPhotos(Array.isArray(biz.photos) ? biz.photos : [])
+        if (biz.latitude && biz.longitude) {
+          setMapPosition([Number(biz.latitude), Number(biz.longitude)])
+        }
       } catch {
         setError('No se pudo cargar la información del negocio.')
       } finally {
@@ -100,6 +167,8 @@ export default function EditBusinessPage() {
     load()
     return () => { cancelled = true }
   }, [])
+
+  // ── Handlers ─────────────────────────────────────────────────────────────
 
   function handleLogoChange(e) {
     const file = e.target.files?.[0]
@@ -128,13 +197,33 @@ export default function EditBusinessPage() {
     })
   }
 
+  function handleLocateMe() {
+    if (!navigator.geolocation) return
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setMapPosition([coords.latitude, coords.longitude])
+        setLocating(false)
+      },
+      () => setLocating(false)
+    )
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     if (!name.trim()) { setError('El nombre es requerido.'); return }
     setError('')
     setSaving(true)
     try {
-      await updateBusiness({ name: name.trim(), type, address: address.trim(), phone: phone.trim() })
+      await updateBusiness({
+        name:      name.trim(),
+        type,
+        address:   address.trim(),
+        phone:     phone.trim(),
+        photos:    existingPhotos,
+        latitude:  mapPosition ? mapPosition[0] : undefined,
+        longitude: mapPosition ? mapPosition[1] : undefined,
+      })
       if (logoFile) await uploadBusinessLogo(logoFile)
       if (newPhotoFiles.length > 0) await uploadBusinessPhotos(newPhotoFiles)
       setSuccess(true)
@@ -146,7 +235,12 @@ export default function EditBusinessPage() {
     }
   }
 
-  const totalPhotos = existingPhotos.length + newPhotoFiles.length
+  // ── Derived ───────────────────────────────────────────────────────────────
+
+  const totalPhotos  = existingPhotos.length + newPhotoFiles.length
+  const defaultCenter = mapPosition ?? [20.676, -103.347] // Default: Guadalajara
+
+  // ── Skeleton ──────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -161,6 +255,8 @@ export default function EditBusinessPage() {
     )
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
     <BusinessLayout>
       <section className="mb-8">
@@ -174,10 +270,12 @@ export default function EditBusinessPage() {
           <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
         )}
         {success && (
-          <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">¡Cambios guardados! Redirigiendo…</div>
+          <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            ¡Cambios guardados! Redirigiendo…
+          </div>
         )}
 
-        {/* ── Info básica ── */}
+        {/* ── Información básica ── */}
         <div className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-sm flex flex-col gap-4">
           <h2 className="text-sm font-bold text-neutral-900">Información del negocio</h2>
 
@@ -196,8 +294,66 @@ export default function EditBusinessPage() {
             </select>
           </div>
 
-          <InputField id="biz-address" label="Dirección" value={address} onChange={(e) => setAddress(e.target.value)} />
+          <InputField id="biz-address" label="Dirección (texto)" value={address} onChange={(e) => setAddress(e.target.value)} />
           <InputField id="biz-phone" label="Teléfono" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+        </div>
+
+        {/* ── Ubicación en el mapa ── */}
+        <div className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-sm flex flex-col gap-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-bold text-neutral-900">Ubicación en el mapa</h2>
+              <p className="mt-0.5 text-xs text-neutral-400">
+                Haz clic en el mapa o arrastra el pin para ajustar la posición.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleLocateMe}
+              disabled={locating}
+              className="flex-shrink-0 flex items-center gap-1.5 rounded-full border border-neutral-200 px-3 py-1.5 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 disabled:opacity-50"
+            >
+              {locating ? (
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-700" />
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/>
+                </svg>
+              )}
+              Mi ubicación
+            </button>
+          </div>
+
+          {mapPosition && (
+            <p className="text-[11px] font-mono text-neutral-400">
+              {mapPosition[0].toFixed(6)}, {mapPosition[1].toFixed(6)}
+            </p>
+          )}
+
+          <div className="overflow-hidden rounded-xl border border-neutral-100 shadow-sm" style={{ height: 280 }}>
+            <MapContainer
+              center={defaultCenter}
+              zoom={mapPosition ? 15 : 12}
+              style={{ height: '100%', width: '100%' }}
+              zoomControl={false}
+              attributionControl={false}
+              scrollWheelZoom
+            >
+              <TileLayer
+                url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                attribution="&copy; CARTO"
+              />
+              <MapCenterController position={mapPosition} />
+              <LocationPicker position={mapPosition} onPositionChange={setMapPosition} />
+            </MapContainer>
+          </div>
+
+          {!mapPosition && (
+            <p className="text-center text-xs text-neutral-400">
+              Toca el mapa para colocar el pin de tu negocio.
+            </p>
+          )}
         </div>
 
         {/* ── Logo ── */}

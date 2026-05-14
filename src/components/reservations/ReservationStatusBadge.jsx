@@ -11,6 +11,22 @@ const STATUS_MAP = {
     label: 'Cancelada',
     classes: 'bg-red-50 text-red-600 border-red-200',
   },
+  completed: {
+    label: 'Completada',
+    classes: 'bg-neutral-100 text-neutral-600 border-neutral-200',
+  },
+  in_progress: {
+    label: 'En proceso',
+    classes: 'bg-blue-50 text-blue-700 border-blue-200',
+  },
+  past: {
+    label: 'Pasada',
+    classes: 'bg-neutral-100 text-neutral-500 border-neutral-200',
+  },
+  reviewed: {
+    label: '✦ Ya calificaste',
+    classes: 'bg-amber-50 text-amber-600 border-amber-200',
+  },
 }
 
 export default function ReservationStatusBadge({ status }) {

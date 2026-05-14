@@ -84,30 +84,43 @@ function Navbar() {
     navigate('/login')
   }
 
+  const isOwner = user?.role === 'BUSINESS_OWNER'
+
   return (
     <header className="fixed inset-x-0 top-0 z-30 h-16 border-b border-neutral-100 bg-white/90 backdrop-blur-md">
       <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-5 sm:px-8">
 
         <Logo />
 
-        <nav className="hidden items-center gap-1 md:flex">
-          {NAV_LINKS.map(({ to, label }) => (
+        {!isOwner ? (
+          <nav className="hidden items-center gap-1 md:flex">
+            {NAV_LINKS.map(({ to, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  [
+                    'rounded-full px-4 py-2 text-sm font-medium transition-colors duration-150',
+                    isActive
+                      ? 'bg-neutral-900 text-white'
+                      : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900',
+                  ].join(' ')
+                }
+              >
+                {label}
+              </NavLink>
+            ))}
+          </nav>
+        ) : (
+          <nav className="hidden items-center gap-1 md:flex">
             <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                [
-                  'rounded-full px-4 py-2 text-sm font-medium transition-colors duration-150',
-                  isActive
-                    ? 'bg-neutral-900 text-white'
-                    : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900',
-                ].join(' ')
-              }
+              to="/business/dashboard"
+              className="rounded-full bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-200"
             >
-              {label}
+              Volver al Panel
             </NavLink>
-          ))}
-        </nav>
+          </nav>
+        )}
 
         <UserMenu name={user?.name} email={user?.email} avatarUrl={user?.avatarUrl || user?.avatar_url} onLogout={handleLogout} />
       </div>
@@ -118,26 +131,39 @@ function Navbar() {
 // ── Bottom nav mobile ─────────────────────────────────────────────────────────
 
 function BottomNav() {
+  const { user } = useAuth()
+  const isOwner = user?.role === 'BUSINESS_OWNER'
+
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-neutral-100 bg-white/95 backdrop-blur-md md:hidden">
       <div className="flex h-16 items-center justify-around px-2">
-        {NAV_LINKS.map(({ to, label, icon }) => (
+        {!isOwner ? (
+          NAV_LINKS.map(({ to, label, icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                [
+                  'flex flex-col items-center gap-0.5 rounded-xl px-4 py-1.5 text-xs font-medium transition-colors duration-150',
+                  isActive
+                    ? 'text-neutral-900'
+                    : 'text-neutral-400 hover:text-neutral-600',
+                ].join(' ')
+              }
+            >
+              {icon}
+              {label}
+            </NavLink>
+          ))
+        ) : (
           <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              [
-                'flex flex-col items-center gap-0.5 rounded-xl px-4 py-1.5 text-xs font-medium transition-colors duration-150',
-                isActive
-                  ? 'text-neutral-900'
-                  : 'text-neutral-400 hover:text-neutral-600',
-              ].join(' ')
-            }
+            to="/business/dashboard"
+            className="flex flex-col items-center gap-0.5 rounded-xl px-4 py-1.5 text-xs font-medium text-neutral-900 transition-colors duration-150"
           >
-            {icon}
-            {label}
+            <CompassIcon />
+            Volver al Panel
           </NavLink>
-        ))}
+        )}
       </div>
     </nav>
   )
@@ -147,7 +173,7 @@ function BottomNav() {
 
 export default function ClientLayout({ children }) {
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-neutral-50 overflow-x-hidden">
       <Navbar />
       <BottomNav />
 

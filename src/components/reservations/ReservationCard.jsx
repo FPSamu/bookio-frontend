@@ -50,6 +50,7 @@ export default function ReservationCard({ reservation, onCancel }) {
     status           = 'pending',
     price            = null,
     duration         = null,
+    rating           = null,
   } = reservation
 
   const bannerSrc = businessImageUrl || businessLogoUrl
@@ -59,8 +60,17 @@ export default function ReservationCard({ reservation, onCancel }) {
     ? `${DAY_NAMES[dateObj.getDay()]}, ${dateObj.getDate()} ${MONTH_NAMES[dateObj.getMonth()]} ${dateObj.getFullYear()}`
     : null
 
-  const gradient = TYPE_GRADIENT[businessType] ?? TYPE_GRADIENT.other
-  const canCancel = status === 'confirmed' || status === 'pending'
+  const gradient  = TYPE_GRADIENT[businessType] ?? TYPE_GRADIENT.other
+  const isPast    = date ? new Date(date) < new Date() : false
+  const canCancel = (status === 'confirmed' || status === 'pending') && !isPast
+  const canReview = isPast && status !== 'cancelled' && !rating
+  const displayStatus = status === 'cancelled'
+    ? 'cancelled'
+    : isPast && rating
+      ? 'reviewed'
+      : isPast
+        ? 'past'
+        : status
 
   function goToDetail(e) {
     e?.stopPropagation()
@@ -97,7 +107,7 @@ export default function ReservationCard({ reservation, onCancel }) {
 
         {/* Status badge */}
         <div className="absolute top-3 right-3">
-          <ReservationStatusBadge status={status} />
+          <ReservationStatusBadge status={displayStatus} />
         </div>
 
         {/* Small logo overlay (bottom right) */}
@@ -154,6 +164,32 @@ export default function ReservationCard({ reservation, onCancel }) {
           >
             Cancelar reserva
           </button>
+        )}
+
+        {canReview && !confirming && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); goToDetail(e) }}
+            className="mt-1 w-full rounded-xl bg-amber-50 border border-amber-200 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-100 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-1.5"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
+              fill="#fbbf24" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            Dejar reseña
+          </button>
+        )}
+
+        {rating && !confirming && (
+          <div className="mt-1 flex items-center justify-center gap-0.5">
+            {[1,2,3,4,5].map(n => (
+              <svg key={n} xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
+                fill={n <= rating ? '#fbbf24' : 'none'} stroke={n <= rating ? '#fbbf24' : '#d1d5db'} strokeWidth="1.5">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+            ))}
+            <span className="ml-1 text-[11px] font-medium text-neutral-400 uppercase tracking-tight">Ya calificaste</span>
+          </div>
         )}
 
         {confirming && (

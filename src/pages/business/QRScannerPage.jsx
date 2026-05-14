@@ -114,6 +114,13 @@ async function safeStop(qrcode) {
     if (qrcode.isScanning) await qrcode.stop()
   } catch {}
   try { qrcode.clear() } catch {}
+  // Liberar todos los streams de video activos del navegador
+  document.querySelectorAll('video').forEach((v) => {
+    try {
+      v.srcObject?.getTracks().forEach((t) => t.stop())
+      v.srcObject = null
+    } catch {}
+  })
 }
 
 export default function QRScannerPage() {
@@ -193,10 +200,16 @@ export default function QRScannerPage() {
   }
 
   async function handleScanAgain() {
+    // Detener cámara actual antes de reiniciar
+    await safeStop(qrcodeRef.current)
+    qrcodeRef.current = null
     setAppointment(null)
     setError('')
     setPhase('scanning')
-    await launchScanner()
+    // Pequeño delay para que el DOM limpie el div antes de reinicializar
+    setTimeout(() => {
+      if (!disposedRef.current) launchScanner()
+    }, 150)
   }
 
   return (

@@ -116,11 +116,13 @@ const FRONTEND_TO_BACKEND_TYPE = {
   other:      'OTHER',
 }
 
-export async function registerBusiness({ name, type, address }) {
+export async function registerBusiness({ name, type, address, lat, lng }) {
   const { data } = await api.post('/businesses', {
     name,
     type: FRONTEND_TO_BACKEND_TYPE[type] || type.toUpperCase(),
     address: address || undefined,
+    latitude: lat !== undefined ? Number(lat) : undefined,
+    longitude: lng !== undefined ? Number(lng) : undefined,
   })
   return data
 }
@@ -160,11 +162,14 @@ export async function getBusinessSchedule(businessId) {
   return data.schedules || data.data || []
 }
 
-export async function updateBusiness({ name, type, address, phone }) {
+export async function updateBusiness({ name, type, address, phone, photos, latitude, longitude }) {
   const body = { name }
   if (type) body.type = FRONTEND_TO_BACKEND_TYPE[type] || type.toUpperCase()
   if (address !== undefined) body.address = address
   if (phone !== undefined) body.phone = phone
+  if (photos !== undefined) body.photos = photos
+  if (latitude !== undefined) body.latitude = latitude
+  if (longitude !== undefined) body.longitude = longitude
   const { data } = await api.put('/businesses/mine', body)
   clearBusinessCache()
   return data

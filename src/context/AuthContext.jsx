@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth'
 import { auth, googleProvider } from '../lib/firebase'
 import api from '../services/api'
+import { clearBusinessCache } from '../services/businesses'
 
 const AuthContext = createContext(null)
 
@@ -28,6 +29,7 @@ export function AuthProvider({ children }) {
           setUser(null)
         }
       } else {
+        clearBusinessCache()
         setUser(null)
       }
       setLoading(false)
@@ -39,6 +41,7 @@ export function AuthProvider({ children }) {
     const { user: firebaseUser } = await createUserWithEmailAndPassword(auth, email, password)
     const idToken = await firebaseUser.getIdToken()
     const { data } = await api.post('/auth/register', { idToken, role, name, phone })
+    clearBusinessCache()
     setUser(data.user)
     return data.user
   }
@@ -46,6 +49,7 @@ export function AuthProvider({ children }) {
   const loginWithEmail = async ({ email, password }) => {
     await signInWithEmailAndPassword(auth, email, password)
     const { data } = await api.get('/auth/me')
+    clearBusinessCache()
     setUser(data.user)
     return data.user
   }
@@ -67,6 +71,7 @@ export function AuthProvider({ children }) {
     } else {
       // Login flow: user must already exist in our DB
       const { data } = await api.get('/auth/me')
+      clearBusinessCache()
       setUser(data.user)
       return data.user
     }
@@ -74,6 +79,7 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     await signOut(auth)
+    clearBusinessCache()
     setUser(null)
   }
 
